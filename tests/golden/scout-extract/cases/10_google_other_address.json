@@ -1,0 +1,6 @@
+{
+  "platform": "google",
+  "fixture": "tests/fixtures/pages/google/200012.html",
+  "url": "https://maps.google.com/?cid=200012",
+  "seen_at": "2026-10-11T09:00:00+05:00"
+}

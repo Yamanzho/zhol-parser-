@@ -1,0 +1,36 @@
+FROM python:3.12-slim-bookworm
+
+WORKDIR /app
+ENV PYTHONUNBUFFERED=1 \
+    ZHOL_CHROME_BINARY=/usr/bin/chromium \
+    ZHOL_CHROMEDRIVER=/usr/bin/chromedriver \
+    ZHOL_CHROME_CONTAINER=1 \
+    ZHOL_CHROME_HEADLESS=1 \
+    ZHOL_CHROME_PROFILE=/var/lib/zhol/chrome-profile
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        chromium \
+        chromium-driver \
+        ca-certificates \
+        fonts-liberation \
+        libnss3 \
+        libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml /app/pyproject.toml
+COPY zhol /app/zhol
+COPY search.py card.py browser_ops.py parser_service.py excel_writer.py categories.json /app/
+
+RUN pip install --no-cache-dir --upgrade pip==25.2 \
+    && pip install --no-cache-dir ".[collector]"
+
+COPY alembic.ini /app/alembic.ini
+COPY alembic /app/alembic
+COPY config /app/config
+COPY prompts /app/prompts
+COPY council /app/council
+
+RUN mkdir -p /var/lib/zhol/chrome-profile /app/logs
+
+CMD ["python", "-m", "zhol.worker", "--queue", "collector"]

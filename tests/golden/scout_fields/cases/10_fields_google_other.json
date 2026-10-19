@@ -1,0 +1,15 @@
+{
+  "platform": "google",
+  "fixture": "tests/fixtures/pages/google/200012.html",
+  "fields": {
+    "rating": 4.2,
+    "reviews_count": 3,
+    "website": null,
+    "owner_claimed": null,
+    "name": "AOE Beauty",
+    "address": "улица Абая, 99",
+    "phones": [
+      "77010000099"
+    ]
+  }
+}

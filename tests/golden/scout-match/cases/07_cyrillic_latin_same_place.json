@@ -1,0 +1,15 @@
+{
+  "identity": {
+    "name": "Montebello",
+    "address": "проспект Абая, 164/6",
+    "phones": []
+  },
+  "candidates": [
+    {
+      "candidate_id": "m",
+      "name": "Монтебелло",
+      "address": "пр-т Абая, 164/6",
+      "phones": []
+    }
+  ]
+}

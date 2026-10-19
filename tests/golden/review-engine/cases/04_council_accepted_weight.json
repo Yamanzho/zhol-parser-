@@ -1,0 +1,15 @@
+{
+  "about": "Консилиум: GPT и Gemini пишут одно major, секретарь сводит в группу, вес 1.5 и чужое семейство: return",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте! Жаль, что пришлось ждать. Напишите нам, разберёмся.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}, "business_data": {"phones": ["+7 702 000 28 63"]}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "Напишите нам", "what": "нет способа связи", "evidence": "business_data.phones", "fix": "добавить телефон"}], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "Напишите нам", "what": "непонятно куда писать", "evidence": "business_data.phones", "fix": "указать номер"}], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [{"ref": "B1", "stance": "agree", "why": "то же"}], "withdraw": [], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [{"ref": "A1", "stance": "agree", "why": "то же"}], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [], "withdraw": [], "new": []}],
+    "council-secretary:stub-claude-sonnet": [{"groups": [{"ids": ["A1", "B1"], "where": "reply", "what": "нет способа связи", "fix": "добавить телефон"}]}]
+  }
+}

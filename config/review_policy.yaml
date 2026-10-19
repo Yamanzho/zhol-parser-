@@ -1,0 +1,21 @@
+weights: {claude: 1, gpt: 1, gemini: 0.5}
+# author_family: семейство автора работы. none = автор код или браузер, годится любой проверяющий.
+# Для dev_stage семейство автора передаётся флагом: council-dev --stage Sx --author claude|gpt
+max_rounds: 3
+council_model_claude: claude-opus-5-5
+points:   # checklist: файл в council/checklists/; members: семейства или модели
+  scout_fields:           {level: single,  checklist: scout_fields,  members: [gpt],   sample: 0.1, author_family: claude}
+  match:                  {level: single,  checklist: match,         members: [gpt],   only_if: same_without_phone, author_family: claude}
+  observations:           {level: single,  checklist: observations,  members: [gpt],   human_first: 20, human_first_blocking: true, author_family: claude}
+  intake_double_read:     {level: single,  mode: double_read,        members: [gpt], author_family: claude}   # GPT заново выполняет intake-extract, сравнивает код
+  package:                {level: council, checklist: package,       members: [gpt, gemini, claude-opus-5-5], human_first: 10, human_first_blocking: true, author_family: claude}
+  review_reply_positive:  {level: single,  checklist: review_reply,  members: [gpt], author_family: claude}
+  review_reply_negative:  {level: council, checklist: review_reply,  members: [gpt, gemini, claude-opus-5-5], author_family: claude}
+  complaint:              {level: single,  mode: double_decision,    members: [gpt], author_family: claude}   # GPT заново выполняет executor-complaint
+  content:                {level: single,  checklists: [content_image, content_text], members: [gemini, gpt], human_first: 10, human_first_blocking: true, author_family: claude}
+  applied:                {level: single,  checklist: applied,       members: [gpt], author_family: none}
+  report:                 {level: council, checklist: report,        members: [gpt, gemini, claude-opus-5-5], human_first: 10, human_first_blocking: true, author_family: claude}
+  change_request:         {level: single,  checklist: change_request, members: [gpt], escalate_to_council_if: [nap, more_than_5], author_family: claude}
+  kazakh_text:            {level: council, checklist: kazakh_text,   members: [gpt, gemini, claude-opus-5-5], native_first: 20, native_sample: 0.1, author_family: claude}
+  dev_stage:              {level: council, checklist: dev-stage,     members: [claude-opus-5-5, gpt, gemini], author_family: from_flag}
+weekly_audit_share: 0.1

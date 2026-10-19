@@ -1,0 +1,11 @@
+{
+  "about": "Позитивный ответ на казахском: уровень поднимается до консилиума kazakh_text",
+  "point": "review_reply_positive",
+  "object": {"reply": "Рақмет! Сізді қайта күтеміз.", "language": "kk", "needs_client_approval": false, "flags": []},
+  "materials": {"review": {"rating": 5, "text": "Керемет шебер"}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}]
+  }
+}

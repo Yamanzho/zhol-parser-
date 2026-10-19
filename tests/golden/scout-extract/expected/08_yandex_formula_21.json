@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "rating": 4.4,
+    "ratings_count": null,
+    "reviews_count": null,
+    "photos_count": 4,
+    "prices": null,
+    "news_count": null,
+    "owner_maintains": null,
+    "name": "70000001000000021",
+    "address": "улица Формулы, 21",
+    "phones": [
+      "77010000021"
+    ]
+  }
+}

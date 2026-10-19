@@ -1,0 +1,23 @@
+{
+  "about": "Принятое major не исправлено за 3 круга: человек",
+  "point": "review_reply_negative",
+  "author_prompt": "executor-review-reply",
+  "object": {"reply": "Здравствуйте! Спасибо, что написали.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "Спасибо, что написали", "what": "ответ не по сути жалобы", "evidence": "review.text", "fix": "ответить про ожидание"}], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [], "withdraw": [], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [{"ref": "A1", "stance": "agree", "why": "да"}], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [{"ref": "A1", "stance": "agree", "why": "да"}], "withdraw": [], "new": []}],
+    "council-secretary:stub-claude-sonnet": [{"groups": [{"ids": ["A1"], "where": "reply", "what": "ответ не по сути", "fix": "ответить про ожидание"}]}],
+    "executor-fix-reply:stub-claude-sonnet": [
+      {"fixed_object": {"reply": "Здравствуйте! Спасибо за отзыв.", "language": "ru", "needs_client_approval": true, "flags": []}, "replies": [{"n": 1, "status": "fixed", "comment": "переписал"}]},
+      {"fixed_object": {"reply": "Здравствуйте! Благодарим за отзыв.", "language": "ru", "needs_client_approval": true, "flags": []}, "replies": [{"n": 1, "status": "fixed", "comment": "переписал"}]}
+    ],
+    "council-recheck:stub-gpt": [{"answers": [{"n": 1, "fixed": false, "why": "всё ещё не про ожидание"}], "new": []}, {"answers": [{"n": 1, "fixed": false, "why": "всё ещё не про ожидание"}], "new": []}],
+    "council-recheck:stub-gemini": [{"answers": [{"n": 1, "fixed": false, "why": "нет"}], "new": []}, {"answers": [{"n": 1, "fixed": false, "why": "нет"}], "new": []}],
+    "council-recheck:stub-claude-opus": [{"answers": [{"n": 1, "fixed": false, "why": "нет"}], "new": []}, {"answers": [{"n": 1, "fixed": false, "why": "нет"}], "new": []}]
+  }
+}

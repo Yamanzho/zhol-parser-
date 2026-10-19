@@ -1,0 +1,26 @@
+{
+  "fields": {
+    "rating": null,
+    "ratings_count": null,
+    "reviews_count": 0,
+    "photos_count": 4,
+    "reviews_shown": null,
+    "replies_count": null,
+    "last_review_date": null,
+    "is_ad": null,
+    "branches": 1,
+    "has_phone": true,
+    "has_whatsapp": null,
+    "has_instagram": null,
+    "link": null,
+    "prices": "empty",
+    "online_booking": false,
+    "name": "AOE Beauty",
+    "address": "улица Абая, 10",
+    "phones": [
+      "77010000012"
+    ],
+    "whatsapp": null,
+    "instagram": null
+  }
+}

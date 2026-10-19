@@ -1,0 +1,6 @@
+{
+  "platform": "yandex",
+  "fixture": "tests/fixtures/pages/yandex/100021.html",
+  "url": "https://yandex.kz/maps/org/x/100021",
+  "seen_at": "2026-10-11T09:00:00+05:00"
+}

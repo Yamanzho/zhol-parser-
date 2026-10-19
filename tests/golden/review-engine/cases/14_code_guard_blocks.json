@@ -1,0 +1,7 @@
+{
+  "about": "Запрещённые фразы ловит код до модели: return без вызовов",
+  "point": "observations",
+  "object": {"strength": null, "observations": [{"text": "Гарантируем рост продаж после настройки", "field_ref": "2gis.prices"}]},
+  "materials": {"fields": {"2gis.prices": "empty"}},
+  "script": {}
+}

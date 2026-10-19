@@ -1,0 +1,33 @@
+# Methodology 1.1 (source/karty-metodika-2026-10.md, section 6). Values are the literals of score() in source/audit_card.py.
+# Ladders are [threshold, points] pairs checked top-down with ">="; the first match wins, otherwise 0.
+methodology: "1.1"
+reviews:
+  ratings_count: [[200, 6], [50, 4], [10, 2]]
+  rating: [[4.8, 5], [4.5, 4], [4.0, 2]]
+  fresh_days_max: 30
+  fresh_points: 4
+  reply_share: [[0.6, 6], [0.2, 4]]
+  reply_share_positive_points: 2
+  yandex_ratings_min: 20
+  yandex_ratings_points: 2
+  google_reviews_min: 20
+  google_reviews_points: 2
+prices:
+  twogis_prices: {"прайс компании": 10, "фото прайса": 4}
+  online_booking_points: 6
+  yandex_prices: {"есть": 5, "есть, давно не обновлялись": 3}
+  yandex_news_points: 4
+photos:
+  twogis_photos: [[50, 15], [20, 10], [5, 5]]
+  yandex_photos: [[30, 10], [10, 7], [1, 4]]
+contacts:
+  flag_points: 2
+  flags: ["2гис_телефон", "2гис_whatsapp", "2гис_instagram"]
+  website_points: 2
+  social_domains: ["tiktok.com", "instagram.com", "facebook.com", "vk.com", "t.me"]
+  yandex_status: {"найдена": 5, "найдена, адрес другой": 2}
+  yandex_owner_points: 2
+  google_found_points: 5
+  google_found_other_points: 2
+  google_claimed_points: 2
+  no_discrepancies_points: 3

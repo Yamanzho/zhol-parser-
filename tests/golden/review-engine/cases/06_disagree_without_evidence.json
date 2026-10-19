@@ -1,0 +1,15 @@
+{
+  "about": "Gemini пишет critical, GPT возражает без ссылки на материал: возражение не считается, critical с чужим голосом принят",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте, Айгерим Сериковна! Жаль, что пришлось ждать.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}, "business_data": {"phones": ["+7 702 000 28 63"]}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [{"id": "1", "severity": "critical", "where": "reply", "quote": "Айгерим Сериковна", "what": "имя и отчество, которых нет в отзыве", "evidence": "review.text", "fix": "убрать имя"}], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [{"ref": "B1", "stance": "disagree", "evidence": "", "why": "мне кажется, это нормально"}], "withdraw": [], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [], "withdraw": [], "new": []}],
+    "council-secretary:stub-claude-sonnet": [{"groups": [{"ids": ["B1"], "where": "reply", "what": "персональные данные", "fix": "убрать имя"}]}]
+  }
+}

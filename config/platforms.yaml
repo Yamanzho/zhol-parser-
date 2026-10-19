@@ -1,0 +1,416 @@
+# Public card pages. Selectors are roles and visible labels, not CSS class strings.
+# Live collection is public 2GIS firm pages only, and only when ZHOL_SCOUT_LIVE=1.
+rate_limit_seconds: 2
+markers:
+  page_attr: data-page
+  platform_attr: data-platform
+  field_attr: data-field
+  candidate_attr: data-candidate
+  external_id_attr: data-external-id
+platforms:
+  2gis:
+    card_url: "https://2gis.kz/almaty/firm/{id}"
+    code_fields:
+      - rating
+      - ratings_count
+      - reviews_count
+      - photos_count
+      - reviews_shown
+      - replies_count
+      - last_review_date
+      - is_ad
+      - branches
+      - has_phone
+      - has_whatsapp
+      - has_instagram
+      - link
+      - prices
+      - online_booking
+      - name
+      - address
+      - phones
+      - whatsapp
+      - instagram
+      - category
+      - city
+      - district
+      - email
+      - description
+      - hours
+    model_fields: []
+    editable_fields:
+      name: {nap: true, shape: text, profile: name}
+      address: {nap: true, shape: text, profile: address}
+      phones: {nap: true, shape: phones, profile: phones}
+      category: {nap: true, shape: text, profile: category}
+      hours: {shape: text, profile: hours, required_on_create: true}
+      link: {shape: text, profile: website}
+      whatsapp: {shape: text, profile: messengers.whatsapp}
+      instagram: {shape: text, profile: socials.instagram}
+      services: {shape: services, profile: services, required_on_create: true}
+      logo: {shape: file, source: client_file, file_kind: logo}
+      photos: {shape: file, source: client_file, file_kind: photo_real, snapshot_key: photos_count}
+      cover: {shape: content, source: content_item, content_kind: cover}
+      promo: {shape: content, source: content_item, content_kind: promo_banner}
+      price_image: {shape: content, source: content_item, content_kind: price_image}
+      video: {shape: content, source: content_item, content_kind: video}
+    cabinet:
+      submit: false
+      create: true
+      pause:
+        login:
+          - "Вход в кабинет"
+          - "Sign in"
+          - "Log in"
+          - "Войдите в аккаунт"
+          - "Введите пароль"
+          - "Войдите снова"
+          - "Сессия истекла"
+          - "Подтвердите, что это вы"
+        captcha: ["не робот", "I'm not a robot", "reCAPTCHA", "подозрительную активность"]
+        sms: ["код из СМС", "код из SMS", "подтвердите номер телефона", "Enter the code", "phone verification"]
+      read_only:
+        - rating
+        - ratings_count
+        - reviews_count
+        - photos_count
+        - reviews_shown
+        - replies_count
+        - last_review_date
+        - is_ad
+        - branches
+        - online_booking
+        - has_phone
+        - has_whatsapp
+        - has_instagram
+        - prices
+        - description
+        - email
+        - city
+        - district
+      editor:
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          category: {role: textbox, name: "Рубрика"}
+          phones: {role: textbox, name: "Телефон"}
+          link: {role: textbox, name: "Сайт"}
+          hours: {role: textbox, name: "Часы работы"}
+          services: {role: textbox, name: "Услуги и цены"}
+          whatsapp: {role: textbox, name: "WhatsApp"}
+          instagram: {role: textbox, name: "Instagram"}
+      create_form:
+        listing_state_field: listing_state
+        absence_phrases: ["карточка не найдена", "нет карточки", "not found"]
+        found_phrases: ["карточка найдена", "listing found"]
+        ownership_phrases: ["права заявлены", "подтвердите владельца", "claim this business"]
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          category: {role: textbox, name: "Рубрика"}
+          phones: {role: textbox, name: "Телефон"}
+          link: {role: textbox, name: "Сайт"}
+          hours: {role: textbox, name: "Часы работы"}
+          services: {role: textbox, name: "Услуги и цены"}
+          whatsapp: {role: textbox, name: "WhatsApp"}
+          instagram: {role: textbox, name: "Instagram"}
+    live:
+      timeout_ms: 15000
+      restriction_texts:
+        - "не робот"
+        - "I'm not a robot"
+        - "подозрительную активность"
+        - "reCAPTCHA"
+        - "Доступ ограничен"
+        - "Access denied"
+        - "Sorry, you have been blocked"
+      robot_texts:
+        - "не робот"
+        - "I'm not a robot"
+        - "подозрительную активность"
+        - "reCAPTCHA"
+      denied_texts:
+        - "Доступ ограничен"
+        - "Access denied"
+        - "Sorry, you have been blocked"
+      tabs:
+        reviews: "Отзывы"
+        photos: "Фото"
+        prices: "Цены"
+        info: "Инфо"
+      patterns:
+        ratings_count: '(?P<value>\d[\d \u00a0]*)[ \t\u00a0]+оцен(?:ок|ки|ка)\b'
+        reviews_count:
+          - '(?P<value>\d[\d \u00a0]*)[ \t\u00a0]+отзыв(?:ов|а|ы)?\b'
+          - '(?m)^отзыв(?:ов|а|ы)?[ \t\u00a0]*\n(?P<value>\d[\d \u00a0]*)[ \t\u00a0]*$'
+        photos_count:
+          - '(?P<value>\d[\d \u00a0]*)[ \t\u00a0]+фото\b'
+          - '(?m)^фото[ \t\u00a0]*\n(?P<value>\d[\d \u00a0]*)[ \t\u00a0]*$'
+        branches: '(?P<value>\d+)[ \t\u00a0]+филиал'
+      labels:
+        is_ad: ["Реклама"]
+        has_whatsapp: ["WhatsApp"]
+        has_instagram: ["Instagram"]
+        online_booking: ["Записаться", "Онлайн-запись"]
+      price_phrases:
+        empty: ["Здесь пока нет цен", "Нет цен", "Цены не указаны"]
+        photo_only: ["Фото прайса"]
+    discovery:
+      firm_href_contains: "/firm/"
+      next_field: next_page
+      scroll_field: scroll_more
+      seen_field: seen_at
+      live: refused
+  yandex:
+    search_url: "https://yandex.kz/maps/?text={query}"
+    code_fields:
+      - rating
+      - ratings_count
+      - reviews_count
+      - photos_count
+      - prices
+      - news_count
+      - owner_maintains
+      - name
+      - address
+      - phones
+      - category
+      - city
+      - whatsapp
+      - instagram
+      - website
+      - email
+      - description
+      - hours
+    model_fields: []
+    editable_fields:
+      name: {nap: true, shape: text, profile: name}
+      address: {nap: true, shape: text, profile: address}
+      phones: {nap: true, shape: phones, profile: phones}
+      category: {nap: true, shape: text, profile: category}
+      hours: {shape: text, profile: hours, required_on_create: true}
+      website: {shape: text, profile: website}
+      whatsapp: {shape: text, profile: messengers.whatsapp}
+      instagram: {shape: text, profile: socials.instagram}
+      services: {shape: services, profile: services, required_on_create: true}
+      description: {shape: text, profile: description}
+      logo: {shape: file, source: client_file, file_kind: logo}
+      photos: {shape: file, source: client_file, file_kind: photo_real, snapshot_key: photos_count}
+      cover: {shape: content, source: content_item, content_kind: cover}
+      news: {shape: content, source: content_item, content_kind: promo_banner}
+      video: {shape: content, source: content_item, content_kind: video}
+    cabinet:
+      submit: false
+      create: true
+      pause:
+        login:
+          - "Вход в кабинет"
+          - "Sign in"
+          - "Log in"
+          - "Войдите в аккаунт"
+          - "Введите пароль"
+          - "Войдите снова"
+          - "Сессия истекла"
+          - "Подтвердите, что это вы"
+        captcha: ["не робот", "I'm not a robot", "reCAPTCHA", "подозрительную активность"]
+        sms:
+          - "код из СМС"
+          - "код из SMS"
+          - "подтвердите номер телефона"
+          - "Enter the code"
+          - "phone verification"
+          - "код подтверждения"
+      read_only:
+        - rating
+        - ratings_count
+        - reviews_count
+        - photos_count
+        - prices
+        - news_count
+        - owner_maintains
+        - email
+        - city
+      editor:
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          description: {role: textbox, name: "Описание"}
+          website: {role: textbox, name: "Сайт"}
+          phones: {role: textbox, name: "Телефон"}
+          hours: {role: textbox, name: "Часы работы"}
+          category: {role: textbox, name: "Рубрика"}
+          services: {role: textbox, name: "Услуги и цены"}
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          whatsapp: {role: textbox, name: "WhatsApp"}
+          instagram: {role: textbox, name: "Instagram"}
+      create_form:
+        listing_state_field: listing_state
+        absence_phrases: ["карточка не найдена", "нет карточки", "not found"]
+        found_phrases: ["карточка найдена", "listing found"]
+        ownership_phrases: ["права заявлены", "подтвердите владельца", "claim this business"]
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          category: {role: textbox, name: "Рубрика"}
+          phones: {role: textbox, name: "Телефон"}
+          website: {role: textbox, name: "Сайт"}
+          hours: {role: textbox, name: "Часы работы"}
+          services: {role: textbox, name: "Услуги и цены"}
+          description: {role: textbox, name: "Описание"}
+          whatsapp: {role: textbox, name: "WhatsApp"}
+          instagram: {role: textbox, name: "Instagram"}
+    live:
+      timeout_ms: 15000
+      link_href_contains: "/org/"
+      robot_texts:
+        - "не робот"
+        - "I'm not a robot"
+        - "подозрительную активность"
+        - "reCAPTCHA"
+        - "Подтвердите, что запросы отправляли вы"
+      denied_texts:
+        - "Доступ ограничен"
+        - "Access denied"
+        - "Sorry, you have been blocked"
+    discovery:
+      firm_href_contains: "/org/"
+      next_field: next_page
+      scroll_field: scroll_more
+      seen_field: seen_at
+      live: refused
+  google:
+    search_url: "https://www.google.com/maps/search/?query={query}"
+    code_fields:
+      - rating
+      - reviews_count
+      - website
+      - owner_claimed
+      - name
+      - address
+      - phones
+      - category
+      - photos_count
+      - city
+      - whatsapp
+      - instagram
+      - email
+      - description
+      - hours
+    model_fields: []
+    editable_fields:
+      name: {nap: true, shape: text, profile: name}
+      address: {nap: true, shape: text, profile: address}
+      phones: {nap: true, shape: phones, profile: phones}
+      category: {nap: true, shape: text, profile: category}
+      hours: {shape: text, profile: hours, required_on_create: true}
+      website: {shape: text, profile: website}
+      description: {shape: text, profile: description}
+      logo: {shape: file, source: client_file, file_kind: logo}
+      photos: {shape: file, source: client_file, file_kind: photo_real, snapshot_key: photos_count}
+      cover: {shape: content, source: content_item, content_kind: cover}
+      post: {shape: content, source: content_item, content_kind: promo_banner}
+      video: {shape: content, source: content_item, content_kind: video}
+    cabinet:
+      submit: false
+      create: true
+      pause:
+        login:
+          - "Вход в кабинет"
+          - "Sign in"
+          - "Log in"
+          - "Войдите в аккаунт"
+          - "Введите пароль"
+          - "Войдите снова"
+          - "Сессия истекла"
+          - "Подтвердите, что это вы"
+        captcha: ["не робот", "I'm not a robot", "reCAPTCHA", "подозрительную активность", "unusual traffic"]
+        sms: ["код из СМС", "код из SMS", "подтвердите номер телефона", "Enter the code", "phone verification"]
+      read_only:
+        - rating
+        - reviews_count
+        - photos_count
+        - owner_claimed
+        - email
+        - city
+      editor:
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          category: {role: textbox, name: "Категория"}
+          phones: {role: textbox, name: "Телефон"}
+          website: {role: textbox, name: "Сайт"}
+          hours: {role: textbox, name: "Часы работы"}
+          description: {role: textbox, name: "Описание"}
+      create_form:
+        listing_state_field: listing_state
+        absence_phrases: ["карточка не найдена", "нет карточки", "not found"]
+        found_phrases: ["карточка найдена", "listing found"]
+        ownership_phrases: ["права заявлены", "подтвердите владельца", "claim this business"]
+        organization_field: organization
+        access_field: access_role
+        access_allowed: ["Владелец", "Представитель", "Owner", "Representative"]
+        access_denied: ["Нет доступа", "Недостаточно прав", "Наблюдатель", "Access denied"]
+        submit_names: ["Сохранить", "Опубликовать", "Отправить", "Save", "Publish", "Submit", "Создать", "Create", "Добавить"]
+        fields:
+          name: {role: textbox, name: "Название"}
+          address: {role: textbox, name: "Адрес"}
+          category: {role: textbox, name: "Категория"}
+          phones: {role: textbox, name: "Телефон"}
+          website: {role: textbox, name: "Сайт"}
+          hours: {role: textbox, name: "Часы работы"}
+          description: {role: textbox, name: "Описание"}
+    live:
+      timeout_ms: 15000
+      link_href_contains: "/maps/place/"
+      robot_texts:
+        - "не робот"
+        - "I'm not a robot"
+        - "unusual traffic"
+        - "подозрительную активность"
+        - "reCAPTCHA"
+        - "Our systems have detected unusual traffic"
+      denied_texts:
+        - "Доступ ограничен"
+        - "Access denied"
+        - "Sorry, you have been blocked"
+    discovery:
+      firm_href_contains: "/maps/place/"
+      next_field: next_page
+      scroll_field: scroll_more
+      seen_field: seen_at
+      live: refused
+# Character caps for generated drafts. Google 750 is the Business Profile description length.
+# Yandex and 2GIS stay at 1000 until a cabinet help page is cited. 2GIS description is not written.
+# Service text and review replies use a shorter cap than the company description.
+text_limits:
+  company_description: 750
+  platform_description:
+    2gis: 1000
+    yandex: 1000
+    google: 750
+  service_description: 300
+  review_reply: 600

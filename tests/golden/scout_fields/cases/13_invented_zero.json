@@ -1,0 +1,28 @@
+{
+  "platform": "2gis",
+  "fixture": "tests/fixtures/pages/2gis/70000001000000017.html",
+  "fields": {
+    "rating": 4.0,
+    "ratings_count": null,
+    "reviews_count": 0,
+    "photos_count": null,
+    "reviews_shown": null,
+    "replies_count": null,
+    "last_review_date": null,
+    "is_ad": null,
+    "branches": 1,
+    "has_phone": null,
+    "has_whatsapp": null,
+    "has_instagram": null,
+    "link": null,
+    "prices": null,
+    "online_booking": null,
+    "name": "Nord",
+    "address": "улица Гоголя, 5",
+    "phones": [
+      "77010000017"
+    ],
+    "whatsapp": null,
+    "instagram": null
+  }
+}

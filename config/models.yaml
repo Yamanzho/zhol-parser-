@@ -1,0 +1,25 @@
+# Unresolved until decision R6 (docs/plan/00-README.md): GPT and Gemini model ids and every price.
+# Prices come from the official price lists on the date of work, with the link and date in docs/decisions.md.
+# While any value below is null or missing, startup validation fails and the service does not start.
+models:
+  claude-sonnet-5-5:          {family: claude, vision: true, usd_per_mtok_in: null, usd_per_mtok_out: null}
+  claude-haiku-4-5-20251001:  {family: claude, vision: true, usd_per_mtok_in: null, usd_per_mtok_out: null}
+  claude-opus-5-5:            {family: claude, vision: true, usd_per_mtok_in: null, usd_per_mtok_out: null}
+  # <GPT model id>:           {family: gpt,    vision: true, usd_per_mtok_in: <price>, usd_per_mtok_out: <price>}
+  # <Gemini model id>:        {family: gemini, vision: true, usd_per_mtok_in: <price>, usd_per_mtok_out: <price>}
+authors:
+  scout-extract: claude-haiku-4-5-20251001
+  scout-match: claude-haiku-4-5-20251001
+  auditor-observations: claude-sonnet-5-5
+  intake-extract: claude-sonnet-5-5
+  executor-package: claude-sonnet-5-5
+  executor-review-reply: claude-sonnet-5-5
+  executor-complaint: claude-sonnet-5-5
+  executor-change-request: claude-sonnet-5-5
+  executor-fix-reply: claude-sonnet-5-5
+  creator-brief: claude-sonnet-5-5
+  creator-text: claude-sonnet-5-5
+  report-writer: claude-sonnet-5-5
+  manager-digest: claude-haiku-4-5-20251001
+  council-secretary: claude-sonnet-5-5
+usd_to_kzt: 460

@@ -1,0 +1,12 @@
+{
+  "about": "Жалоба: обе модели независимо сказали да с тем же основанием: pass",
+  "point": "complaint",
+  "author_prompt": "executor-complaint",
+  "author_input": {"platform": "2gis", "name": "AOE", "address": "Алматы", "rating": 1, "review_text": "Реклама соседнего салона, звоните туда"},
+  "compare": "equal",
+  "object": {"should_complain": true, "reason_code": "advertising", "complaint_text": "Отзыв рекламирует другую компанию"},
+  "materials": {},
+  "script": {
+    "executor-complaint:stub-gpt": [{"should_complain": true, "reason_code": "advertising", "complaint_text": "Отзыв рекламирует другую компанию"}]
+  }
+}

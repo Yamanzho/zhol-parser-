@@ -1,0 +1,15 @@
+# Saved pages only. This is not a live directory.
+companies:
+  - {id_2gis: "70000001000000011", name: "AOE Beauty", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000012", name: "AOE Beauty", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000017", name: "Nord", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000021", name: "70000001000000021", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000022", name: "70000001000000022", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000023", name: "70000001000000023", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000031", name: "Salon One", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000032", name: "Salon Two", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000033", name: "Salon Three", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000034", name: "Salon Four", city: "Алматы", category: "Салон красоты"}
+  - {id_2gis: "70000001000000018", name: "Branch", city: "Алматы", category: "Парикмахерская"}
+  - {id_2gis: "70000001000000041", name: "Astana Table", city: "Астана", category: "Ресторан"}
+  - {id_2gis: "70000001000000042", name: "Astana Grill", city: "Астана", category: "Ресторан"}

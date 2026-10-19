@@ -1,0 +1,19 @@
+{
+  "identity": {
+    "name": "Badi",
+    "address": "микрорайон Самал-2, 32",
+    "phones": [
+      "+7 701 949 60 08"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "a",
+      "name": "Badi",
+      "address": "мкр Самал-2, 32",
+      "phones": [
+        "8 701 949 60 08"
+      ]
+    }
+  ]
+}

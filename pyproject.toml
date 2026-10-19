@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zhol"
+version = "0.1.0"
+description = "Zhol AI automation platform"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic==1.16.5",
+    "anthropic==1.13.0",
+    "fastapi==0.118.3",
+    "google-genai==2.29.0",
+    "jsonschema==4.26.0",
+    "openai==3.28.0",
+    "openpyxl==3.1.5",
+    "psycopg[binary]==3.2.10",
+    "pydantic==2.14.0",
+    "python-multipart==0.0.20",
+    "pyyaml==6.0.3",
+    "sqlalchemy==2.0.43",
+    "uvicorn[standard]==0.37.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.2",
+]
+browser = [
+    "playwright==1.55.0",
+]
+collector = [
+    "selenium==4.50.0",
+]
+
+[project.scripts]
+zhol = "zhol.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["zhol*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

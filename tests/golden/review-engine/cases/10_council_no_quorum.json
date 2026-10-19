@@ -1,0 +1,11 @@
+{
+  "about": "GPT и Gemini не ответили и после повтора, ответил только Claude Opus (семейство автора): кворума нет, человек",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте! Жаль, что пришлось ждать.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}},
+  "script": {
+    "council-r1:stub-gpt": [{"error": "timeout"}, {"error": "timeout"}],
+    "council-r1:stub-gemini": [{"error": "timeout"}, {"error": "timeout"}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}]
+  }
+}

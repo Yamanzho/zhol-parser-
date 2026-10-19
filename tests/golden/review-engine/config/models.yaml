@@ -1,0 +1,24 @@
+# Offline stub configuration for golden review-engine cases. Model names and prices are fictional
+# and never reach a provider: cases run against FakeProvider only.
+models:
+  stub-claude-sonnet: {family: claude, vision: true, usd_per_mtok_in: 1.0, usd_per_mtok_out: 2.0}
+  stub-claude-haiku:  {family: claude, vision: true, usd_per_mtok_in: 1.0, usd_per_mtok_out: 2.0}
+  stub-claude-opus:   {family: claude, vision: true, usd_per_mtok_in: 1.0, usd_per_mtok_out: 2.0}
+  stub-gpt:           {family: gpt,    vision: true, usd_per_mtok_in: 1.0, usd_per_mtok_out: 2.0}
+  stub-gemini:        {family: gemini, vision: true, usd_per_mtok_in: 1.0, usd_per_mtok_out: 2.0}
+authors:
+  scout-extract: stub-claude-haiku
+  scout-match: stub-claude-haiku
+  auditor-observations: stub-claude-sonnet
+  intake-extract: stub-claude-sonnet
+  executor-package: stub-claude-sonnet
+  executor-review-reply: stub-claude-sonnet
+  executor-complaint: stub-claude-sonnet
+  executor-change-request: stub-claude-sonnet
+  executor-fix-reply: stub-claude-sonnet
+  creator-brief: stub-claude-sonnet
+  creator-text: stub-claude-sonnet
+  report-writer: stub-claude-sonnet
+  manager-digest: stub-claude-haiku
+  council-secretary: stub-claude-sonnet
+usd_to_kzt: 460

@@ -1,0 +1,11 @@
+{
+  "platform": "yandex",
+  "fixture": "tests/fixtures/pages/yandex/70000001000000011.search.html",
+  "identity": {
+    "name": "AOE Beauty",
+    "address": "улица Абая, 10",
+    "phones": [
+      "+7 701 000 00 11"
+    ]
+  }
+}

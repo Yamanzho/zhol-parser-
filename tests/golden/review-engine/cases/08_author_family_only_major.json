@@ -1,0 +1,15 @@
+{
+  "about": "Major пишет только Claude Opus (семейство автора), чужих голосов нет: спорное, не блокирует, pass с заметкой",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте! Жаль, что пришлось ждать. Позвоните нам: +7 702 000 28 63.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}, "business_data": {"phones": ["+7 702 000 28 63"]}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "Позвоните нам", "what": "лучше пригласить в WhatsApp", "evidence": "business_data", "fix": "добавить WhatsApp"}], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [], "withdraw": [], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [], "withdraw": [], "new": []}],
+    "council-secretary:stub-claude-sonnet": [{"groups": [{"ids": ["C1"], "where": "reply", "what": "лучше WhatsApp", "fix": "добавить WhatsApp"}]}]
+  }
+}

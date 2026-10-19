@@ -1,0 +1,12 @@
+{
+  "about": "Принятое major, автор исправил ответом, проверка исправления: pass во втором круге",
+  "point": "observations",
+  "author_prompt": "auditor-observations",
+  "object": {"strength": null, "observations": [{"text": "В 2ГИС 12 фото", "field_ref": "2gis.photos"}]},
+  "materials": {"fields": {"2gis.photos": 9}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [{"id": "1", "severity": "major", "where": "observations[0].text", "quote": "12 фото", "what": "в поле 9 фото", "evidence": "fields", "fix": "написать 9"}], "unverified": []}],
+    "executor-fix-reply:stub-claude-sonnet": [{"fixed_object": {"strength": null, "observations": [{"text": "В 2ГИС 9 фото", "field_ref": "2gis.photos"}]}, "replies": [{"n": 1, "status": "fixed", "comment": "исправил на 9"}]}],
+    "council-recheck:stub-gpt": [{"answers": [{"n": 1, "fixed": true, "why": "совпадает с полем"}], "new": []}]
+  }
+}

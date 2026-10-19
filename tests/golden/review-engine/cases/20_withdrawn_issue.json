@@ -1,0 +1,14 @@
+{
+  "about": "GPT во втором круге снимает своё замечание: замечаний нет, секретарь не нужен, pass",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте! Жаль, что пришлось ждать. Позвоните нам: +7 702 000 28 63.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}, "business_data": {"phones": ["+7 702 000 28 63"]}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "+7 702 000 28 63", "what": "номер не проверен", "evidence": "business_data.phones", "fix": "сверить"}], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [], "withdraw": ["A1"], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [{"ref": "A1", "stance": "agree", "why": "да"}], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [], "withdraw": [], "new": []}]
+  }
+}

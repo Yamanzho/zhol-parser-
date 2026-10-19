@@ -1,0 +1,17 @@
+{
+  "identity": {
+    "name": "Velara",
+    "address": "проспект Назарбаева, 226",
+    "phones": [
+      "+7 771 808 66 66"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "v",
+      "name": "салон Velara",
+      "address": "пр-т Назарбаева, 226",
+      "phones": []
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "platform": "2gis",
+  "fixture": "tests/fixtures/pages/2gis/70000001000000022.html",
+  "fields": {
+    "rating": 4.0,
+    "ratings_count": null,
+    "reviews_count": null,
+    "photos_count": 8,
+    "reviews_shown": null,
+    "replies_count": null,
+    "last_review_date": null,
+    "is_ad": null,
+    "branches": 1,
+    "has_phone": null,
+    "has_whatsapp": null,
+    "has_instagram": null,
+    "link": null,
+    "prices": null,
+    "online_booking": null,
+    "name": "70000001000000022",
+    "address": "улица Формулы, 22",
+    "phones": [
+      "77010000022"
+    ],
+    "whatsapp": null,
+    "instagram": null
+  }
+}

@@ -1,0 +1,29 @@
+# Excel columns Phone, WhatsApp, Instagram, Website, Email.
+# Each platform snapshot keeps the value that was on that page.
+# The first filled source below is written to the common cell.
+# A later empty source does not clear it.
+# A later filled source with a different value is reported and does not replace the earlier one.
+# WhatsApp is only a value that was published as WhatsApp. A phone number is not turned into a link.
+priority:
+  phone:
+    - {platform: 2gis, key: phones}
+    - {platform: yandex, key: phones}
+    - {platform: google, key: phones}
+  whatsapp:
+    - {platform: 2gis, key: whatsapp}
+    - {platform: yandex, key: whatsapp}
+    - {platform: google, key: whatsapp}
+    - {source: company, key: whatsapp}
+  instagram:
+    - {platform: 2gis, key: instagram}
+    - {platform: yandex, key: instagram}
+    - {platform: google, key: instagram}
+    - {source: company, key: instagram}
+  website:
+    - {platform: google, key: website}
+    - {platform: 2gis, key: link}
+    - {platform: yandex, key: website}
+  email:
+    - {platform: 2gis, key: email}
+    - {platform: yandex, key: email}
+    - {platform: google, key: email}

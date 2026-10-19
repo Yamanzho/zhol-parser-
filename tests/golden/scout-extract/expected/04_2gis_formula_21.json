@@ -1,0 +1,26 @@
+{
+  "fields": {
+    "rating": 4.5,
+    "ratings_count": null,
+    "reviews_count": null,
+    "photos_count": 10,
+    "reviews_shown": null,
+    "replies_count": null,
+    "last_review_date": null,
+    "is_ad": null,
+    "branches": 1,
+    "has_phone": null,
+    "has_whatsapp": null,
+    "has_instagram": null,
+    "link": null,
+    "prices": null,
+    "online_booking": null,
+    "name": "70000001000000021",
+    "address": "улица Формулы, 21",
+    "phones": [
+      "77010000021"
+    ],
+    "whatsapp": null,
+    "instagram": null
+  }
+}

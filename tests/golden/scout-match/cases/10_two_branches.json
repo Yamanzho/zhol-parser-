@@ -1,0 +1,21 @@
+{
+  "identity": {
+    "name": "Стиль",
+    "address": "улица Ауэзова, 129",
+    "phones": []
+  },
+  "candidates": [
+    {
+      "candidate_id": "p",
+      "name": "Стиль",
+      "address": "улица Гоголя, 176",
+      "phones": []
+    },
+    {
+      "candidate_id": "q",
+      "name": "студия Стиль",
+      "address": "проспект Абая, 10",
+      "phones": []
+    }
+  ]
+}

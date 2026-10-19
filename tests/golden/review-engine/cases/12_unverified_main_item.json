@@ -1,0 +1,9 @@
+{
+  "about": "Проверяющий не смог проверить главный пункт 1 чек-листа: человек",
+  "point": "observations",
+  "object": {"strength": null, "observations": [{"text": "Вкладка цен в 2ГИС пустая", "field_ref": "2gis.prices"}]},
+  "materials": {"fields": {}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [], "unverified": [{"item": 1, "why": "поля 2gis.prices нет в материалах"}]}]
+  }
+}

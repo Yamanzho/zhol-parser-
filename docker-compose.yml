@@ -1,0 +1,146 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    command: ["uvicorn", "zhol.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: Asia/Almaty
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      ZHOL_ADMIN_TOKEN: ${ZHOL_ADMIN_TOKEN:-}
+      DGIS_CATALOG_KEY: ${DGIS_CATALOG_KEY:-}
+      ZHOL_2GIS_BROWSER_GRANT: ${ZHOL_2GIS_BROWSER_GRANT:-}
+      ZHOL_YANDEX_BROWSER_GRANT: ${ZHOL_YANDEX_BROWSER_GRANT:-}
+      ZHOL_GOOGLE_BROWSER_GRANT: ${ZHOL_GOOGLE_BROWSER_GRANT:-}
+      ZHOL_BROWSER_ENGINE: ${ZHOL_BROWSER_ENGINE:-1}
+    volumes:
+      - ./data/admin:/app/data/admin
+    ports:
+      - "127.0.0.1:${API_PORT:-18080}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["python", "-m", "zhol.worker", "--queue", "main"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: Asia/Almaty
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      DGIS_CATALOG_KEY: ${DGIS_CATALOG_KEY:-}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  browser-worker:
+    build: .
+    command: ["python", "-m", "zhol.worker", "--queue", "browser"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: Asia/Almaty
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  collector:
+    profiles: ["collector"]
+    build:
+      context: .
+      dockerfile: Dockerfile.collector
+    command: ["python", "-m", "zhol.worker", "--queue", "collector"]
+    shm_size: "1gb"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: Asia/Almaty
+      ZHOL_2GIS_BROWSER_GRANT: ${ZHOL_2GIS_BROWSER_GRANT:-}
+      ZHOL_YANDEX_BROWSER_GRANT: ${ZHOL_YANDEX_BROWSER_GRANT:-}
+      ZHOL_GOOGLE_BROWSER_GRANT: ${ZHOL_GOOGLE_BROWSER_GRANT:-}
+      ZHOL_BROWSER_ENGINE: ${ZHOL_BROWSER_ENGINE:-1}
+      ZHOL_CHROME_BINARY: /usr/bin/chromium
+      ZHOL_CHROMEDRIVER: /usr/bin/chromedriver
+      ZHOL_CHROME_CONTAINER: "1"
+      ZHOL_CHROME_HEADLESS: "1"
+      ZHOL_CHROME_PROFILE: /var/lib/zhol/chrome-profile
+      ZHOL_COLLECTION_PACE: /var/lib/zhol/chrome-profile/collection-pace
+      ZHOL_WORKER_HEARTBEAT: /tmp/zhol-collector-heartbeat
+    restart: unless-stopped
+    volumes:
+      - collector-chrome:/var/lib/zhol/chrome-profile
+      - collector-logs:/app/logs
+      - ./data/admin:/app/data/admin
+    healthcheck:
+      test: ["CMD", "python", "-m", "zhol.worker_health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  scheduler:
+    build: .
+    command: ["python", "-m", "zhol.cli", "scheduler-tick", "--loop", "60"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
+      TZ: Asia/Almaty
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backup:
+    profiles: ["backup"]
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: ${POSTGRES_DB:?POSTGRES_DB is required}
+      ZHOL_BACKUP_INTERVAL_SECONDS: ${ZHOL_BACKUP_INTERVAL_SECONDS:-86400}
+    entrypoint: ["/bin/sh", "/usr/local/bin/zhol-pg-backup-loop.sh"]
+    volumes:
+      - ./scripts/zhol-pg-backup-loop.sh:/usr/local/bin/zhol-pg-backup-loop.sh:ro
+      - ./data/backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    restart: unless-stopped
+    build:
+      context: ./web
+    environment:
+      ZHOL_API_ORIGIN: http://api:8000
+    ports:
+      - "127.0.0.1:${WEB_PORT:-15173}:5173"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  collector-chrome:
+  collector-logs:

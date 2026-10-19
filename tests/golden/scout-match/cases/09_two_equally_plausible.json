@@ -1,0 +1,27 @@
+{
+  "identity": {
+    "name": "AOE Beauty",
+    "address": "улица Абая, 10",
+    "phones": [
+      "+7 701 000 00 11"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "1",
+      "name": "AOE Beauty",
+      "address": "ул. Абая, 10",
+      "phones": [
+        "+7 701 000 00 11"
+      ]
+    },
+    {
+      "candidate_id": "2",
+      "name": "салон AOE",
+      "address": "улица Абая, 10",
+      "phones": [
+        "87010000011"
+      ]
+    }
+  ]
+}

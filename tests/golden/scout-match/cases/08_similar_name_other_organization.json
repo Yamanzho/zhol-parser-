@@ -1,0 +1,19 @@
+{
+  "identity": {
+    "name": "Montebello",
+    "address": "проспект Абая, 164/6",
+    "phones": [
+      "+7 776 111 25 85"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "n",
+      "name": "Montebello Nails",
+      "address": "проспект Абая, 164/6",
+      "phones": [
+        "+7 700 000 00 01"
+      ]
+    }
+  ]
+}

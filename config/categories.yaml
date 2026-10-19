@@ -1,0 +1,34 @@
+# Exact labels only. A label not listed here stays blank. No model calls.
+ambiguous:
+  - салон
+  - студия
+  - центр
+entries:
+  - labels: ["Салон красоты", "Beauty salon"]
+    sector: Красота
+    category: Салон красоты
+    subcategory: ""
+  - labels: ["Парикмахерская"]
+    sector: Красота
+    category: Салон красоты
+    subcategory: Парикмахерская
+  - labels: ["Фитнес-клуб"]
+    sector: Спорт
+    category: Фитнес-клуб
+    subcategory: ""
+  - labels: ["Тренажёрный зал", "Тренажерный зал"]
+    sector: Спорт
+    category: Фитнес-клуб
+    subcategory: Тренажёрный зал
+  - labels: ["Ресторан"]
+    sector: Питание
+    category: Ресторан
+    subcategory: ""
+  - labels: ["Стоматология"]
+    sector: Медицина
+    category: Стоматология
+    subcategory: ""
+  - labels: ["Медицинский центр"]
+    sector: Медицина
+    category: Медицинский центр
+    subcategory: ""

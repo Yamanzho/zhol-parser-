@@ -1,0 +1,16 @@
+{
+  "fields": {
+    "rating": 4.7,
+    "ratings_count": 80,
+    "reviews_count": 20,
+    "photos_count": 9,
+    "prices": "yes",
+    "news_count": 2,
+    "owner_maintains": true,
+    "name": "AOE Beauty",
+    "address": "ул. Абая, 10",
+    "phones": [
+      "77010000011"
+    ]
+  }
+}

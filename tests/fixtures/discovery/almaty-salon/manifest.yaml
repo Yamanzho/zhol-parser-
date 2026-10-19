@@ -1,0 +1,7 @@
+# Saved search pages for one city and category. These files are not a live directory.
+city: Алматы
+category: Салон красоты
+starts:
+  2gis: 2gis/page-1.html
+  yandex: yandex/page-1.html
+  google: google/page-1.html

@@ -1,0 +1,13 @@
+{
+  "fields": {
+    "rating": 4.6,
+    "reviews_count": 12,
+    "website": "https://aoe.example",
+    "owner_claimed": true,
+    "name": "Салон AOE Beauty",
+    "address": "ул. Абая, 10",
+    "phones": [
+      "77029990011"
+    ]
+  }
+}

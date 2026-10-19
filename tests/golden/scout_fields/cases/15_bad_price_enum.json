@@ -1,0 +1,29 @@
+{
+  "platform": "2gis",
+  "fixture": "tests/fixtures/pages/2gis/70000001000000011.html",
+  "fields": {
+    "rating": 4.8,
+    "ratings_count": 120,
+    "reviews_count": 40,
+    "photos_count": 15,
+    "reviews_shown": 10,
+    "replies_count": 4,
+    "last_review_date": "2026-09-20",
+    "is_ad": false,
+    "branches": 1,
+    "has_phone": true,
+    "has_whatsapp": true,
+    "has_instagram": true,
+    "link": "https://aoe.example",
+    "prices": "yes",
+    "online_booking": true,
+    "name": "AOE Beauty",
+    "address": "улица Абая, 10",
+    "phones": [
+      "77010000011"
+    ],
+    "whatsapp": "+7 701 000 00 11",
+    "instagram": "aoe_almaty",
+    "category": "Салон красоты"
+  }
+}

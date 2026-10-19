@@ -1,0 +1,20 @@
+# Same rules as config/review_policy.yaml, with stub model names.
+weights: {claude: 1, gpt: 1, gemini: 0.5}
+max_rounds: 3
+council_model_claude: stub-claude-opus
+points:
+  scout_fields:           {level: single,  checklist: scout_fields,  members: [gpt],   sample: 0.1, author_family: claude}
+  match:                  {level: single,  checklist: match,         members: [gpt],   only_if: same_without_phone, author_family: claude}
+  observations:           {level: single,  checklist: observations,  members: [gpt],   human_first: 20, human_first_blocking: true, author_family: claude}
+  intake_double_read:     {level: single,  mode: double_read,        members: [gpt], author_family: claude}
+  package:                {level: council, checklist: package,       members: [gpt, gemini, stub-claude-opus], human_first: 10, human_first_blocking: true, author_family: claude}
+  review_reply_positive:  {level: single,  checklist: review_reply,  members: [gpt], author_family: claude}
+  review_reply_negative:  {level: council, checklist: review_reply,  members: [gpt, gemini, stub-claude-opus], author_family: claude}
+  complaint:              {level: single,  mode: double_decision,    members: [gpt], author_family: claude}
+  content:                {level: single,  checklists: [content_image, content_text], members: [gemini, gpt], human_first: 10, human_first_blocking: true, author_family: claude}
+  applied:                {level: single,  checklist: applied,       members: [gpt], author_family: none}
+  report:                 {level: council, checklist: report,        members: [gpt, gemini, stub-claude-opus], human_first: 10, human_first_blocking: true, author_family: claude}
+  change_request:         {level: single,  checklist: change_request, members: [gpt], escalate_to_council_if: [nap, more_than_5], author_family: claude}
+  kazakh_text:            {level: council, checklist: kazakh_text,   members: [gpt, gemini, stub-claude-opus], native_first: 20, native_sample: 0.1, author_family: claude}
+  dev_stage:              {level: council, checklist: dev-stage,     members: [stub-claude-opus, gpt, gemini], author_family: from_flag}
+weekly_audit_share: 0.1

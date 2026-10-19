@@ -1,0 +1,9 @@
+{
+  "about": "Единственный проверяющий не ответил и после повтора: кворума нет, человек",
+  "point": "observations",
+  "object": {"strength": null, "observations": [{"text": "Вкладка цен в 2ГИС пустая", "field_ref": "2gis.prices"}]},
+  "materials": {"fields": {"2gis.prices": "empty"}},
+  "script": {
+    "council-r1:stub-gpt": [{"raw": "not json"}, {"raw": "not json"}, {"error": "timeout"}]
+  }
+}

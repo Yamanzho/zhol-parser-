@@ -1,0 +1,19 @@
+{
+  "identity": {
+    "name": "Kassandra",
+    "address": "проспект Назарбаева, 36",
+    "phones": [
+      "+7 775 231 99 00"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "x",
+      "name": "Nord",
+      "address": "улица Гоголя, 5",
+      "phones": [
+        "+7 701 000 00 17"
+      ]
+    }
+  ]
+}

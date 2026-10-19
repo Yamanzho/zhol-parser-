@@ -1,0 +1,21 @@
+# Offline development overlay. The default compose file is unchanged and still
+# fail-closes on config/models.yaml until decision R6 is filled in.
+# This file does not remove pgdata and does not contain API keys.
+services:
+  api:
+    environment:
+      ZHOL_CONFIG_DIR: /offline-config
+      ZHOL_LOCAL_ACCESS: "1"
+      ZHOL_LOCAL_GATE: ${ZHOL_LOCAL_GATE:-}
+    volumes:
+      - ./tests/golden/review-engine/config:/offline-config:ro
+      - ./tests/fixtures:/app/tests/fixtures:ro
+  web:
+    environment:
+      ZHOL_LOCAL_GATE: ${ZHOL_LOCAL_GATE:-}
+  worker:
+    # Scout jobs store absolute fixture and export paths. The worker must see
+    # the same directories the API used when it queued the job.
+    volumes:
+      - ./tests/fixtures:/app/tests/fixtures:ro
+      - ./data/admin:/app/data/admin

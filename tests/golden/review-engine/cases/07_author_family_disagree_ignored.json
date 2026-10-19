@@ -1,0 +1,15 @@
+{
+  "about": "Gemini major, GPT согласен (вес 1.5). Claude Opus того же семейства, что автор, возражает с доказательством: спора нет, return",
+  "point": "review_reply_negative",
+  "object": {"reply": "Здравствуйте! Спасибо, что написали.", "language": "ru", "needs_client_approval": true, "flags": []},
+  "materials": {"review": {"rating": 2, "text": "Долго ждала мастера"}, "business_data": {"phones": ["+7 702 000 28 63"]}},
+  "script": {
+    "council-r1:stub-gpt": [{"issues": [], "unverified": []}],
+    "council-r1:stub-gemini": [{"issues": [{"id": "1", "severity": "major", "where": "reply", "quote": "Спасибо, что написали", "what": "ответ не касается жалобы на ожидание", "evidence": "review.text", "fix": "ответить на суть"}], "unverified": []}],
+    "council-r1:stub-claude-opus": [{"issues": [], "unverified": []}],
+    "council-r2:stub-gpt": [{"answers": [{"ref": "B1", "stance": "agree", "why": "так и есть"}], "withdraw": [], "new": []}],
+    "council-r2:stub-gemini": [{"answers": [], "withdraw": [], "new": []}],
+    "council-r2:stub-claude-opus": [{"answers": [{"ref": "B1", "stance": "disagree", "evidence": "review: «Долго ждала мастера»", "why": "достаточно вежливо"}], "withdraw": [], "new": []}],
+    "council-secretary:stub-claude-sonnet": [{"groups": [{"ids": ["B1"], "where": "reply", "what": "ответ не по сути", "fix": "ответить на суть"}]}]
+  }
+}

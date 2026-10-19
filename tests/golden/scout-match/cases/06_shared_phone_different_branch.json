@@ -1,0 +1,19 @@
+{
+  "identity": {
+    "name": "Montebello",
+    "address": "проспект Абая, 164/6",
+    "phones": [
+      "+7 776 111 25 85"
+    ]
+  },
+  "candidates": [
+    {
+      "candidate_id": "b",
+      "name": "Montebello",
+      "address": "улица Гоголя, 5",
+      "phones": [
+        "+7 776 111 25 85"
+      ]
+    }
+  ]
+}
