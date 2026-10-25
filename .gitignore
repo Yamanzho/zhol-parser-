@@ -33,6 +33,11 @@ source/**/*.png
 web/node_modules/
 web/dist/
 
+# Standalone demo build. Recreate with scripts/build-macos-demo.sh.
+/dist/
+/build/
+packaging/*.spec
+
 /package-lock.json
 docs/acceptance/**/*.png
 

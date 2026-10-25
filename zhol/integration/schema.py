@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import zipfile
+from collections.abc import Sequence
 from typing import Iterable, Iterator
 from xml.sax.saxutils import escape
 
@@ -167,37 +169,33 @@ def job_document(body: dict) -> dict:
     }
 
 
-def export_bytes(fmt: str, rows: Iterable[dict], *, notes: tuple[str, ...] | list[str]) -> tuple[bytes, str, str]:
-    if fmt not in EXPORT_FORMATS:
-        raise IntegrationError(400, "rejected", "Формат выгрузки: xlsx, csv или json.")
-    materialized = list(rows)
-    if len(materialized) > EXPORT_ROW_CAP:
+def ensure_export_size(total: int) -> None:
+    if total > EXPORT_ROW_CAP:
         raise IntegrationError(
             400,
             "rejected",
             f"В выгрузке больше {EXPORT_ROW_CAP} строк. Сузьте фильтр или выберите одно задание.",
         )
-    if fmt == "csv":
-        return _csv(materialized), "text/csv; charset=utf-8", "zhol-companies.csv"
-    if fmt == "json":
-        import json
 
-        payload = {"items": [_export_item(row) for row in materialized], "total": len(materialized), "notes": list(notes)}
-        raw = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
-        return raw, "application/json; charset=utf-8", "zhol-companies.json"
-    return _xlsx(materialized, notes), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "zhol-companies.xlsx"
+
+def export_bytes(fmt: str, rows: Iterable[dict], *, notes: tuple[str, ...] | list[str]) -> tuple[bytes, str, str]:
+    """Write one row at a time. A known oversized list is refused before the file is built."""
+    if fmt not in EXPORT_FORMATS:
+        raise IntegrationError(400, "rejected", "Формат выгрузки: xlsx, csv или json.")
+    if isinstance(rows, Sequence) and not isinstance(rows, (str, bytes)):
+        ensure_export_size(len(rows))
+    if fmt == "csv":
+        return _csv(rows), "text/csv; charset=utf-8", "zhol-companies.csv"
+    if fmt == "json":
+        return _json_export(rows, notes), "application/json; charset=utf-8", "zhol-companies.json"
+    return _xlsx(rows, notes), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "zhol-companies.xlsx"
 
 
 def iter_capped(rows: Iterator[dict]) -> Iterator[dict]:
     count = 0
     for row in rows:
         count += 1
-        if count > EXPORT_ROW_CAP:
-            raise IntegrationError(
-                400,
-                "rejected",
-                f"В выгрузке больше {EXPORT_ROW_CAP} строк. Сузьте фильтр или выберите одно задание.",
-            )
+        ensure_export_size(count)
         yield row
 
 
@@ -205,19 +203,39 @@ def _export_item(row: dict) -> dict:
     return {key: row.get(key) for key, _title in RESULT_COLUMNS}
 
 
-def _csv(rows: list[dict]) -> bytes:
+def _csv(rows: Iterable[dict]) -> bytes:
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow([title for _key, title in RESULT_COLUMNS])
-    for row in rows:
+    for row in _stream_rows(rows):
         writer.writerow(["" if row.get(key) is None else row.get(key) for key, _title in RESULT_COLUMNS])
     return buffer.getvalue().encode("utf-8-sig")
 
 
-def _xlsx(rows: list[dict], notes: tuple[str, ...] | list[str]) -> bytes:
-    sheet_rows = [[title for _key, title in RESULT_COLUMNS]]
+def _json_export(rows: Iterable[dict], notes: tuple[str, ...] | list[str]) -> bytes:
+    chunks = ["{", '"items": [']
+    count = 0
+    for row in _stream_rows(rows):
+        if count:
+            chunks.append(",")
+        chunks.append(json.dumps(_export_item(row), ensure_ascii=False))
+        count += 1
+    chunks.append("],")
+    chunks.append('"total": ' + str(count) + ",")
+    chunks.append('"notes": ' + json.dumps(list(notes), ensure_ascii=False))
+    chunks.append("}")
+    return "".join(chunks).encode("utf-8")
+
+
+def _stream_rows(rows: Iterable[dict]) -> Iterator[dict]:
+    count = 0
     for row in rows:
-        sheet_rows.append(["" if row.get(key) is None else str(row.get(key)) for key, _title in RESULT_COLUMNS])
+        count += 1
+        ensure_export_size(count)
+        yield row
+
+
+def _xlsx(rows: Iterable[dict], notes: tuple[str, ...] | list[str]) -> bytes:
     note_rows = [["Пояснение"]]
     for note in notes:
         note_rows.append([note])
@@ -227,7 +245,7 @@ def _xlsx(rows: list[dict], notes: tuple[str, ...] | list[str]) -> bytes:
         "xl/workbook.xml": _workbook(),
         "xl/_rels/workbook.xml.rels": _workbook_rels(),
         "xl/styles.xml": _styles(),
-        "xl/worksheets/sheet1.xml": _sheet(sheet_rows),
+        "xl/worksheets/sheet1.xml": _sheet_stream(rows),
         "xl/worksheets/sheet2.xml": _sheet(note_rows),
     }
     buffer = io.BytesIO()
@@ -238,16 +256,42 @@ def _xlsx(rows: list[dict], notes: tuple[str, ...] | list[str]) -> bytes:
 
 
 def _sheet(rows: list[list[str]]) -> str:
-    body = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>"]
-    body.append('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>')
-    for index, row in enumerate(rows, start=1):
-        cells = []
-        for column, value in enumerate(row, start=1):
-            ref = f"{_column_name(column)}{index}"
-            cells.append(f'<c r="{ref}" t="inlineStr"><is><t>{escape(value)}</t></is></c>')
-        body.append(f'<row r="{index}">{"".join(cells)}</row>')
+    return _sheet_xml(rows)
+
+
+def _sheet_stream(rows: Iterable[dict]) -> str:
+    header = [title for _key, title in RESULT_COLUMNS]
+    body = [_sheet_open(), _row_xml(1, header)]
+    index = 1
+    for row in _stream_rows(rows):
+        index += 1
+        values = ["" if row.get(key) is None else str(row.get(key)) for key, _title in RESULT_COLUMNS]
+        body.append(_row_xml(index, values))
     body.append("</sheetData></worksheet>")
     return "".join(body)
+
+
+def _sheet_xml(rows: list[list[str]]) -> str:
+    body = [_sheet_open()]
+    for index, row in enumerate(rows, start=1):
+        body.append(_row_xml(index, row))
+    body.append("</sheetData></worksheet>")
+    return "".join(body)
+
+
+def _sheet_open() -> str:
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'
+    )
+
+
+def _row_xml(index: int, values: list[str]) -> str:
+    cells = []
+    for column, value in enumerate(values, start=1):
+        ref = f"{_column_name(column)}{index}"
+        cells.append(f'<c r="{ref}" t="inlineStr"><is><t>{escape(value)}</t></is></c>')
+    return f'<row r="{index}">{"".join(cells)}</row>'
 
 
 def _column_name(index: int) -> str:

@@ -30,6 +30,55 @@ def test_shared_phone_and_other_address_is_not_merged() -> None:
     assert decision.candidate is None
 
 
+def test_different_phones_at_the_same_address_are_not_merged() -> None:
+    """The search hit can be reviewed. It is not a confirmed id, and the companies are not merged."""
+    from zhol.agents.scout.identity import Profile, relate
+
+    identity = Identity("North", "улица Абая, 10", ["+7 701 000 00 01"])
+    other = Candidate("g", "9002", "https://example/g", "North", "ул. Абая, 10", ["+7 701 000 00 02"])
+    decision = choose(identity, [other])
+    assert decision.verdict == "same"
+    assert decision.phone_match is False
+    assert decision.candidate is not None
+    assert decision.candidate.candidate_id == "g"
+    relation = relate(
+        Profile("North", "улица Абая, 10", ("77010000001",), ()),
+        Profile("North", "улица Абая, 10", ("77010000002",), ()),
+    )
+    assert relation.kind == "ambiguous"
+    assert relation.phone_confirmed is False
+
+
+def test_a_phone_conflict_blocks_an_otherwise_clear_card() -> None:
+    identity = Identity("North", "улица Абая, 10", ["+7 701 000 00 01"])
+    clear = Candidate("a", "1", "https://example/a", "North", "ул. Абая, 10", ["87010000001"])
+    other_phone = Candidate("g", "2", "https://example/g", "North", "ул. Абая, 10", ["+7 702 000 00 02"])
+    decision = choose(identity, [clear, other_phone])
+    assert decision.verdict == "ambiguous"
+    assert decision.candidate is None
+
+
+def test_a_missing_phone_stays_a_review_not_a_confirmed_id() -> None:
+    """One side without a number is still a possible card, and it is not a phone confirmation."""
+    identity = Identity("Velara", "проспект Назарбаева, 226", ["+7 771 808 66 66"])
+    listed = Candidate("v", "53907907781", "https://example/v", "салон Velara", "пр-т Назарбаева, 226", [])
+    decision = choose(identity, [listed])
+    assert decision.verdict == "same"
+    assert decision.phone_match is False
+    assert decision.candidate is not None
+    assert decision.candidate.candidate_id == "v"
+
+
+def test_the_same_number_in_another_format_is_one_card() -> None:
+    identity = Identity("North", "улица Абая, 10", ["+7 701 000 00 01"])
+    same = Candidate("a", "1", "https://example/a", "North", "ул. Абая, 10", ["8 701 000 00 01"])
+    decision = choose(identity, [same])
+    assert decision.verdict == "same"
+    assert decision.phone_match is True
+    assert decision.candidate is not None
+    assert decision.candidate.candidate_id == "a"
+
+
 def test_a_clear_card_is_not_replaced_by_a_branch() -> None:
     """A second card with the same phone and another address must not become the chosen card."""
     identity = Identity("Montebello", "проспект Абая, 164/6", ["+7 776 111 25 85"])

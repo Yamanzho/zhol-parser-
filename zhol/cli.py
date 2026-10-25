@@ -1089,12 +1089,17 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
-    from zhol.demo.server import serve
+    from zhol.demo.server import DemoLaunchError, serve
 
     try:
-        serve(args.host, args.port, open_browser=args.open)
+        message = serve(args.host, args.port, open_browser=args.open)
+    except DemoLaunchError as exc:
+        print(exc.message, file=sys.stderr)
+        return 1
     except KeyboardInterrupt:
         return 0
+    if message:
+        print(message)
     return 0
 
 

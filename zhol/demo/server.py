@@ -2,20 +2,47 @@
 
 from __future__ import annotations
 
+import errno
 import json
 import mimetypes
+import signal
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
+from urllib.error import URLError
 from urllib.parse import parse_qs, unquote, urlparse
+from urllib.request import urlopen
 
 from zhol.demo.store import DemoStore
 from zhol.integration.schema import DEMO_EXPORT_NOTES, IntegrationError, error_body, export_bytes, parse_page
 
-ROOT = Path(__file__).resolve().parents[2]
-STATIC_DIR = ROOT / "demo" / "static"
 LOOPBACK = {"127.0.0.1", "::1"}
+
+
+class DemoLaunchError(Exception):
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
+
+
+def static_root() -> Path:
+    frozen = getattr(sys, "_MEIPASS", None)
+    if not frozen:
+        return Path(__file__).resolve().parents[2] / "demo" / "static"
+    root = Path(frozen)
+    candidates = (
+        root / "demo" / "static",
+        root.parent / "Resources" / "demo" / "static",
+        root.parent / "Frameworks" / "demo" / "static",
+    )
+    for candidate in candidates:
+        if (candidate / "index.html").is_file():
+            return candidate
+    return candidates[0]
+
+
 OPENAPI = {
     "openapi": "3.1.0",
     "info": {"title": "Zhol demo", "version": "v1"},
@@ -230,11 +257,12 @@ class DemoServer:
     def __init__(self, host: str = "127.0.0.1", port: int = 8765, step: float = 0.35, static_dir: Path | None = None) -> None:
         self.host = require_loopback(host)
         self.store = DemoStore(step)
-        self.static_dir = STATIC_DIR if static_dir is None else static_dir
+        self.static_dir = static_root() if static_dir is None else static_dir
         handler = _handler(self.store, self.static_dir)
         self.httpd = ThreadingHTTPServer((self.host, port), handler)
         self.port = int(self.httpd.server_address[1])
         self.thread = threading.Thread(target=self._loop, name="zhol-demo", daemon=True)
+        self._closed = False
 
     def start(self) -> None:
         self.thread.start()
@@ -247,8 +275,13 @@ class DemoServer:
             self.close()
 
     def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
         self.store.closed = True
-        self.httpd.shutdown()
+        if self.thread.is_alive():
+            self.httpd.shutdown()
+            self.thread.join(timeout=5)
         self.httpd.server_close()
 
     def _loop(self) -> None:
@@ -266,12 +299,70 @@ class DemoServer:
             self.store.pump()
 
 
-def serve(host: str = "127.0.0.1", port: int = 8765, *, step: float = 0.35, open_browser: bool = False) -> None:
-    server = DemoServer(host, port, step=step)
+def _emit(message: str) -> None:
+    stream = sys.stdout
+    if stream is None:
+        return
+    try:
+        stream.write(message + "\n")
+        stream.flush()
+    except Exception:
+        return
+
+
+def _address_in_use(exc: OSError) -> bool:
+    return exc.errno in {errno.EADDRINUSE, errno.EADDRNOTAVAIL}
+
+
+def demo_is_running(port: int) -> bool:
+    if port <= 0:
+        return False
+    try:
+        with urlopen(f"http://127.0.0.1:{port}/health", timeout=0.5) as response:
+            body = json.loads(response.read().decode("utf-8"))
+    except (OSError, URLError, TimeoutError, json.JSONDecodeError, ValueError):
+        return False
+    return isinstance(body, dict) and body.get("status") == "ok" and body.get("mode") == "demo"
+
+
+def serve(host: str = "127.0.0.1", port: int = 8765, *, step: float = 0.35, open_browser: bool = False) -> str:
+    """Start the demo, or return a Russian note when this demo is already running.
+
+    A foreign program on the same port raises DemoLaunchError and leaves that program alone.
+    """
+    if getattr(sys, "frozen", False) and not (static_root() / "index.html").is_file():
+        raise DemoLaunchError("В приложении нет страницы демонстрации. Сборка неполная, запуск остановлен.")
+    try:
+        server = DemoServer(host, port, step=step)
+    except OSError as exc:
+        if not _address_in_use(exc):
+            raise DemoLaunchError("Демонстрация не запустилась. Локальный сервер не открылся.") from exc
+        if demo_is_running(port):
+            url = f"http://127.0.0.1:{port}/"
+            if open_browser:
+                import webbrowser
+
+                webbrowser.open(url)
+            return f"Демонстрация уже запущена. Страница открыта: {url}"
+        raise DemoLaunchError(
+            f"Порт {port} занят другой программой. Демонстрация не запущена. Закройте эту программу и откройте Жол снова."
+        ) from exc
     server.start()
+    url = f"http://127.0.0.1:{server.port}/"
     if open_browser:
         import webbrowser
 
-        webbrowser.open(f"http://127.0.0.1:{server.port}/")
-    print(f"Демонстрационный режим: http://127.0.0.1:{server.port}/", flush=True)
+        webbrowser.open(url)
+    _emit(f"Демонстрационный режим: {url}")
+    _stop_on_signal(server)
     server.wait()
+    return ""
+
+
+def _stop_on_signal(server: DemoServer) -> None:
+    def _stop(_signum: int, _frame: object) -> None:
+        server.close()
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _stop)
+    signal.signal(signal.SIGINT, _stop)

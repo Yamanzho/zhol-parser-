@@ -29,6 +29,7 @@ from zhol.integration.schema import (
     LIVE_EXPORT_NOTES,
     PLATFORM_LABEL,
     IntegrationError,
+    ensure_export_size,
     blank,
     collection_limit,
     company_record,
@@ -200,6 +201,15 @@ def iter_job_records(session: Session, job_id: int) -> Iterator[dict[str, Any]]:
     if batch is None:
         return
     platform = _platform_of(payload)
+    total = int(
+        session.scalar(
+            select(func.count())
+            .select_from(CollectionBatchItem)
+            .where(CollectionBatchItem.batch_id == batch.id)
+        )
+        or 0
+    )
+    ensure_export_size(total)
     offset = 0
     while True:
         rows = session.scalars(
@@ -253,6 +263,8 @@ def iter_companies(session: Session, *, q: str, platform: str | None, city: str 
     offset = 0
     while True:
         body = list_companies(session, q=q, platform=platform, city=city, limit=100, offset=offset)
+        if offset == 0:
+            ensure_export_size(int(body["total"]))
         items = body["items"]
         if not items:
             return

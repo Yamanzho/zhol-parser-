@@ -6,6 +6,7 @@ import json
 import socket
 import subprocess
 import sys
+import time
 import zipfile
 from io import BytesIO
 from pathlib import Path
@@ -14,11 +15,46 @@ from urllib.request import Request, urlopen
 
 import pytest
 
-from zhol.demo.server import DemoServer, require_loopback
+from zhol.demo.server import DemoLaunchError, DemoServer, demo_is_running, require_loopback, serve
 from zhol.demo.store import DemoStore
 from zhol.integration.schema import IntegrationError
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_a_running_demo_is_reused_and_a_foreign_port_is_reported() -> None:
+    first = DemoServer("127.0.0.1", 0, step=0)
+    first.start()
+    holder = socket.socket()
+    holder.bind(("127.0.0.1", 0))
+    holder.listen(1)
+    try:
+        deadline = time.time() + 2
+        while time.time() < deadline and not demo_is_running(first.port):
+            time.sleep(0.02)
+        assert demo_is_running(first.port) is True
+        note = serve("127.0.0.1", first.port, step=0, open_browser=False)
+        assert "уже запущена" in note
+        with pytest.raises(DemoLaunchError) as caught:
+            serve("127.0.0.1", holder.getsockname()[1], step=0, open_browser=False)
+        assert "занят" in caught.value.message
+        assert "не запущена" in caught.value.message
+    finally:
+        holder.close()
+        first.close()
+
+
+def test_a_zero_limit_is_rejected() -> None:
+    server = DemoServer("127.0.0.1", 0, step=0)
+    server.start()
+    origin = f"http://127.0.0.1:{server.port}"
+    try:
+        response = _open(origin, "POST", "/api/v1/jobs", {"platform": "2gis", "city": "Алматы", "query": "салон", "limit": 0})
+        assert response.status == 422
+        body = json.loads(response.read().decode("utf-8"))
+        assert body["error"]["code"] == "validation_error"
+    finally:
+        server.close()
 
 
 def test_demo_refuses_a_public_bind() -> None:

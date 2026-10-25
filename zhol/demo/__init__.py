@@ -95,7 +95,8 @@ class DemoStore:
         platform = str(spec.get("platform") or "")
         city = " ".join(str(spec.get("city") or "").split())
         query = " ".join(str(spec.get("query") or "").split())
-        limit = collection_limit(int(spec.get("limit") or COLLECTION_LIMIT_DEFAULT))
+        raw_limit = spec.get("limit")
+        limit = collection_limit(COLLECTION_LIMIT_DEFAULT if raw_limit is None else int(raw_limit))
         key = normalize_idempotency_key(spec.get("idempotency_key"))
         if platform not in PLATFORMS:
             raise IntegrationError(422, "validation_error", "Площадка: 2gis, google или yandex.")

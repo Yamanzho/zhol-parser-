@@ -224,8 +224,11 @@ def test_audit_preview_does_not_import(client) -> None:
     nav = (ROOT / "web" / "src" / "App.tsx").read_text(encoding="utf-8")
     for removed in ('["orders"', '["content"', '["listings"', '["tasks"', '["reports"'):
         assert removed not in nav
-    assert "Главная" in nav
-    assert "Загрузка и анализ аудита" in nav
+    for label in ("Сбор", "Компании", "Выгрузка", "Дополнительно"):
+        assert label in nav
+    assert "Главная" in page
+    assert "Загрузка и анализ аудита" in page
+    assert "#/audits" in (ROOT / "web" / "src" / "home.tsx").read_text(encoding="utf-8")
 
 
 def _auth() -> dict[str, str]:

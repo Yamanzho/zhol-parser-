@@ -406,4 +406,12 @@ Local launcher did not reach Compose (18.10.2026):
 
 `Запустить Zhol.command` checks `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` before any `docker compose` command. Those keys were absent until 19:31. After that, the launcher did not run: it would have rewritten `.env`, and the image stamp would have changed. The stamp is still the 13 October value, the workers are still the exited 17 October containers, and the backup service was never created. The repaired launcher keeps an existing database container, starts the API, panel, both workers, and the backup service, and writes failures to `~/Library/Logs/Zhol/startup.log`. It was not used to recreate the running project.
 
+Identity, different phones at one address (25.10.2026):
+
+`relate()` stays `ambiguous` when the name and address fit and both cards have phones that do not overlap, so a second company is not created. `choose()` keeps a single search hit as `same` with `phone_match` false: the snapshot can be reviewed, and `company_platform_ids` is not written. Two such hits stay unresolved and no card is chosen. A shared phone written as `+7` and `8` is still one card. A card with no phone on one side stays `same` with `phone_match` false. A newer snapshot from another platform is not used as this platform's address. No migration is added.
+
+Collection export size (25.10.2026):
+
+`GET /api/v1/jobs/{id}/export` and `GET /api/v1/export` still stop at 5000 rows. The count is checked before the remaining rows are read. CSV, JSON, and Excel are written row by row. Passing the cap returns the same Russian error and does not add a table or a migration.
+
 
