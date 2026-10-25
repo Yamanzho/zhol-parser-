@@ -234,6 +234,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the listing improvement plan for one company",
     )
     planned.add_argument("--company-id", type=int, required=True)
+
+    demo = commands.add_parser("demo", parents=[_now_parent()], help="Start the local fixture demo on localhost")
+    demo.add_argument("--host", default="127.0.0.1")
+    demo.add_argument("--port", type=int, default=8765)
+    demo.add_argument("--open", action="store_true", help="Open the demo page in the browser")
+
+    jobs = commands.add_parser("jobs", help="Call the collection API without opening the panel")
+    jobs.add_argument("--api", default="http://127.0.0.1:18080")
+    jobs.add_argument("--token", default="")
+    job_commands = jobs.add_subparsers(dest="jobs_command", required=True)
+    created = job_commands.add_parser("create")
+    created.add_argument("--platform", required=True, choices=("2gis", "google", "yandex"))
+    created.add_argument("--city", required=True)
+    created.add_argument("--query", required=True)
+    created.add_argument("--limit", type=int, default=20)
+    created.add_argument("--idempotency-key", default=None)
+    status = job_commands.add_parser("status")
+    status.add_argument("job_id", type=int)
+    results = job_commands.add_parser("results")
+    results.add_argument("job_id", type=int)
+    exported = job_commands.add_parser("export")
+    exported.add_argument("job_id", type=int)
+    exported.add_argument("--format", default="csv", choices=("xlsx", "csv", "json"))
+    exported.add_argument("--out", type=Path, required=True)
     return parser
 
 
@@ -994,6 +1018,10 @@ def cmd_bek_audit_plan(args: argparse.Namespace, factory: Any = None) -> int:
 
 def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = None, notifier: Any = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "demo":
+        return cmd_demo(args)
+    if args.command == "jobs":
+        return cmd_jobs(args)
     if getattr(args, "now", None) is not None:
         set_now(parse_now(args.now))
     if args.command == "eval":
@@ -1057,6 +1085,50 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
     if args.command == "bek-audit-plan":
         return cmd_bek_audit_plan(args, factory)
     print(now().isoformat())
+    return 0
+
+
+def cmd_demo(args: argparse.Namespace) -> int:
+    from zhol.demo.server import serve
+
+    try:
+        serve(args.host, args.port, open_browser=args.open)
+    except KeyboardInterrupt:
+        return 0
+    return 0
+
+
+def cmd_jobs(args: argparse.Namespace) -> int:
+    import json
+    import os
+
+    from zhol.integration.client import create_job, export_job, job_results, job_status
+    from zhol.integration.schema import IntegrationError
+
+    token = args.token or os.environ.get("ZHOL_ADMIN_TOKEN", "")
+    try:
+        if args.jobs_command == "create":
+            body = create_job(
+                args.api,
+                token,
+                platform=args.platform,
+                city=args.city,
+                query=args.query,
+                limit=args.limit,
+                idempotency_key=args.idempotency_key,
+            )
+        elif args.jobs_command == "status":
+            body = job_status(args.api, token, args.job_id)
+        elif args.jobs_command == "results":
+            body = job_results(args.api, token, args.job_id)
+        else:
+            export_job(args.api, token, args.job_id, args.format, args.out)
+            print(args.out)
+            return 0
+    except IntegrationError as exc:
+        print(exc.message, file=sys.stderr)
+        return 2
+    print(json.dumps(body, ensure_ascii=False, indent=2))
     return 0
 
 

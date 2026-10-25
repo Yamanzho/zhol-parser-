@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { clearToken, endLocalSession, ensureLocalSession, getToken, isLocalHost, setToken, setUnauthorized, api } from "./api";
+import { Advanced, Collection, Companies as CompanyList, ExportPanel, MetaProvider, type Meta } from "./home";
 import {
   AuditDetail,
   Audits,
-  Companies,
   CompanyDetail,
   Content,
   Dashboard,
@@ -19,30 +19,49 @@ import {
 import { parseRoute, useHash } from "./ui";
 
 const NAV = [
-  ["scout", "Сбор компаний"],
+  ["collect", "Сбор"],
   ["companies", "Компании"],
-  ["history", "История"],
-  ["dashboard", "Главная"],
-  ["audits", "Аудит"],
+  ["export", "Выгрузка"],
+  ["advanced", "Дополнительно"],
 ];
 
 type Gate = "checking" | "ready" | "login";
 
 export function App(): ReactNode {
   const [gate, setGate] = useState<Gate>(getToken() ? "ready" : "checking");
+  const [meta, setMeta] = useState<Meta | null>(null);
   const hash = useHash();
   const route = parseRoute(hash);
   setUnauthorized(() => setGate("login"));
 
   useEffect(() => {
-    if (getToken()) {
-      setGate("ready");
-      return;
-    }
     let cancel = false;
-    void ensureLocalSession().then((ok) => {
-      if (!cancel) setGate(ok ? "ready" : "login");
-    });
+    void fetch("/api/v1/meta")
+      .then(async (response) => (response.ok ? ((await response.json()) as Meta) : null))
+      .then((body) => {
+        if (cancel) return;
+        setMeta(body);
+        if (body?.demo) {
+          setGate("ready");
+          return;
+        }
+        if (getToken()) {
+          setGate("ready");
+          return;
+        }
+        void ensureLocalSession().then((ok) => {
+          if (!cancel) setGate(ok ? "ready" : "login");
+        });
+      })
+      .catch(() => {
+        if (cancel) return;
+        if (getToken()) setGate("ready");
+        else {
+          void ensureLocalSession().then((ok) => {
+            if (!cancel) setGate(ok ? "ready" : "login");
+          });
+        }
+      });
     return () => {
       cancel = true;
     };
@@ -62,40 +81,42 @@ export function App(): ReactNode {
   }
 
   return (
-    <div className="layout">
-      <header className="topbar">
-        <strong>Жол</strong>
-        {NAV.map(([id, label]) => (
-          <a
-            key={id}
-            href={`#/${id}`}
-            className={route.page === id ? "active" : ""}
-            title={id === "audits" ? "Загрузка и анализ аудита" : undefined}
-          >
-            {label}
-          </a>
-        ))}
-        <button
-          type="button"
-          onClick={() => {
-            clearToken();
-            void endLocalSession().finally(() => setGate("login"));
-          }}
-        >
-          Выйти
-        </button>
-      </header>
-      <main>{screen(route.page, route.id)}</main>
-    </div>
+    <MetaProvider value={meta}>
+      <div className="layout">
+        <header className="topbar">
+          <strong>Жол</strong>
+          {NAV.map(([id, label]) => (
+            <a key={id} href={`#/${id}`} className={route.page === id ? "active" : ""}>
+              {label}
+            </a>
+          ))}
+          {!meta?.demo && (
+            <button
+              type="button"
+              onClick={() => {
+                clearToken();
+                void endLocalSession().finally(() => setGate("login"));
+              }}
+            >
+              Выйти
+            </button>
+          )}
+        </header>
+        {meta?.demo && <div className="demo-banner">Демонстрационный режим. Учебные компании, без карт и без рабочей базы.</div>}
+        <main>{screen(route.page, route.id)}</main>
+      </div>
+    </MetaProvider>
   );
 }
 
 function screen(page: string, id: string): ReactNode {
+  if (page === "collect") return <Collection />;
   if (page === "companies" && id) return <CompanyDetail id={id} />;
-  if (page === "companies") return <Companies />;
-  if (page === "history") return <Scout />;
+  if (page === "companies") return <CompanyList />;
+  if (page === "export") return <ExportPanel />;
+  if (page === "advanced") return <Advanced />;
+  if (page === "history" || (page === "scout" && !id)) return <Scout />;
   if (page === "scout" && id) return <ScoutDetail id={id} />;
-  if (page === "scout") return <Scout />;
   if (page === "audits" && id) return <AuditDetail id={id} />;
   if (page === "audits") return <Audits />;
   if (page === "orders" && id) return <OrderDetail id={id} />;
@@ -105,7 +126,8 @@ function screen(page: string, id: string): ReactNode {
   if (page === "tasks") return <Tasks />;
   if (page === "reports" && id) return <ReportDetail id={id} />;
   if (page === "reports") return <Reports />;
-  return <Dashboard />;
+  if (page === "dashboard") return <Dashboard />;
+  return <Collection />;
 }
 
 function Login(props: { onSuccess: () => void }): ReactNode {

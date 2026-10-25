@@ -153,10 +153,22 @@ def defer(session: Session, job_id: int, attempt: int, delay: timedelta) -> None
     session.flush()
 
 
+def _release_dedup(job: Job) -> None:
+    """Drop the content hash so the same search can run again.
+
+    A client idempotency key stays on the row after the job finishes, so a
+    retry returns the original job instead of starting another collection.
+    """
+    key = job.dedup_key or ""
+    if key.startswith("admin.scout_batch:idem:"):
+        return
+    job.dedup_key = None
+
+
 def complete(session: Session, job_id: int, attempt: int) -> None:
     job = _locked_running(session, job_id, attempt)
     job.status = "done"
-    job.dedup_key = None
+    _release_dedup(job)
     session.flush()
 
 
@@ -164,7 +176,7 @@ def _record_failure(session: Session, job: Job, error: BaseException | str) -> b
     job.last_error = safe_error(error)
     if job.attempts >= MAX_ATTEMPTS:
         job.status = "dead"
-        job.dedup_key = None
+        _release_dedup(job)
         session.add(
             HumanTask(
                 reason=DEAD_REASON,

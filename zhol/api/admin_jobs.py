@@ -362,6 +362,13 @@ def kick_job(session: Session, job_id: int) -> dict[str, Any] | None:
 def handle_scout_batch(factory: sessionmaker[Session], payload: dict[str, Any]) -> None:
     """Run one admin scout batch. Called by the main worker, not by the API process."""
     job_id, attempt = _running_attempt(factory, payload)
+    signal = _job_admin_signal(factory, job_id)
+    if signal == "stop":
+        return
+    if signal == "pause":
+        from zhol.integration.live import raise_if_paused_before_start
+
+        raise_if_paused_before_start(signal)
     control = RunControl()
     stop_poll = threading.Event()
     holder: dict[str, int | None] = {"batch_id": _payload_batch(payload)}
@@ -369,6 +376,11 @@ def handle_scout_batch(factory: sessionmaker[Session], payload: dict[str, Any]) 
 
     def poll() -> None:
         while not stop_poll.wait(0.2):
+            job_signal = _job_admin_signal(factory, job_id)
+            if job_signal == "stop":
+                control.stop()
+            elif job_signal == "pause":
+                control.pause()
             batch_id = holder["batch_id"]
             if not isinstance(batch_id, int):
                 continue
@@ -740,6 +752,17 @@ def _running_export(factory: sessionmaker[Session]) -> Path:
     if job is None:
         raise BatchError("scout job is not running")
     return job_export_path(job.id)
+
+
+def _job_admin_signal(factory: sessionmaker[Session], job_id: int) -> str | None:
+    with factory() as session:
+        job = session.get(Job, job_id)
+    if job is None or not isinstance(job.payload, dict):
+        return None
+    signal = job.payload.get("admin_signal")
+    if signal in {"pause", "stop"}:
+        return str(signal)
+    return None
 
 
 def _payload_batch(payload: dict[str, Any]) -> int | None:

@@ -803,4 +803,152 @@ details.extra summary {
   .saved-import button {
     width: 100%;
   }
+
+  .simple-form,
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demo-banner {
+  background: #fff4cc;
+  color: #5c4300;
+  padding: 10px 16px;
+  font-weight: 650;
+}
+
+.simple {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.simple h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.lede {
+  margin: 0 0 16px;
+  color: #3e4c59;
+}
+
+.simple-form,
+.filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.simple-form label,
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.simple-form input,
+.simple-form select,
+.filters input,
+.filters select {
+  padding: 8px;
+  border: 1px solid #bcccdc;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.actions button,
+.actions a.button {
+  background: #1f2933;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 14px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actions button.secondary,
+.actions a.secondary {
+  background: #fff;
+  color: #1f2933;
+  border: 1px solid #9fb3c8;
+}
+
+.actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-card {
+  background: #fff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 8px;
+}
+
+.bar {
+  height: 8px;
+  background: #e4e7eb;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: #2f6fed;
+}
+
+.note {
+  color: #3e4c59;
+  font-size: 14px;
+}
+
+.company-list {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.company-list th,
+.company-list td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #e4e7eb;
+  vertical-align: top;
+}
+
+.company-list button.link {
+  background: none;
+  border: 0;
+  color: #1d4ed8;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.advanced-list {
+  display: grid;
+  gap: 8px;
+}
+
+.advanced-list a {
+  background: #fff;
+  border: 1px solid #d9e2ec;
+  border-radius: 8px;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
 }

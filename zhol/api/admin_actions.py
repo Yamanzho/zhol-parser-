@@ -504,7 +504,7 @@ def _enqueue_scout(session: Session, body: ScoutStart) -> dict[str, Any]:
     return start_scout_job(session, payload)
 
 
-def _enqueue_maps(session: Session, plan: dict[str, Any]) -> dict[str, Any]:
+def _enqueue_maps(session: Session, plan: dict[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
     mode = str(plan["source_mode"])
     material = {
         "source_mode": mode,
@@ -516,17 +516,16 @@ def _enqueue_maps(session: Session, plan: dict[str, Any]) -> dict[str, Any]:
     }
     if isinstance(plan.get("plan"), dict):
         material["plan"] = plan["plan"]
-    digest = hashlib.sha256(json.dumps(material, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:32]
     payload = {
         **material,
         "fixtures_dir": None,
         "out": "",
-        "dedup_key": f"admin.scout_batch:{digest}",
+        "dedup_key": _dedup_key(material, idempotency_key, ensure_ascii=False),
     }
     return start_scout_job(session, payload)
 
 
-def _enqueue_browser(session: Session, plan: dict[str, Any]) -> dict[str, Any]:
+def _enqueue_browser(session: Session, plan: dict[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
     material = {
         "source_mode": BROWSER_2GIS,
         "city": str(plan["city"]).strip(),
@@ -537,14 +536,22 @@ def _enqueue_browser(session: Session, plan: dict[str, Any]) -> dict[str, Any]:
     }
     if isinstance(plan.get("plan"), dict):
         material["plan"] = plan["plan"]
-    digest = hashlib.sha256(json.dumps(material, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:32]
     payload = {
         **material,
         "fixtures_dir": None,
         "out": "",
-        "dedup_key": f"admin.scout_batch:{digest}",
+        "dedup_key": _dedup_key(material, idempotency_key, ensure_ascii=False),
     }
     return start_scout_job(session, payload)
+
+
+def _dedup_key(material: dict[str, Any], idempotency_key: str | None, *, ensure_ascii: bool) -> str:
+    if idempotency_key:
+        digest = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()[:32]
+        return f"admin.scout_batch:idem:{digest}"
+    raw = json.dumps(material, sort_keys=True, ensure_ascii=ensure_ascii).encode("utf-8")
+    digest = hashlib.sha256(raw).hexdigest()[:32]
+    return f"admin.scout_batch:{digest}"
 
 
 def _enqueue_live(session: Session, plan: dict[str, Any]) -> dict[str, Any]:

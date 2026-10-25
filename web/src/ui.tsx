@@ -3,9 +3,9 @@ import { api, apiDownload, apiSend, apiUpload, type Row } from "./api";
 import { COLUMN_LABEL, rawCell, ru } from "./text";
 
 export function useHash(): string {
-  const [hash, setHash] = useState(window.location.hash || "#/dashboard");
+  const [hash, setHash] = useState(window.location.hash || "#/collect");
   useEffect(() => {
-    const onChange = () => setHash(window.location.hash || "#/dashboard");
+    const onChange = () => setHash(window.location.hash || "#/collect");
     window.addEventListener("hashchange", onChange);
     return () => window.removeEventListener("hashchange", onChange);
   }, []);

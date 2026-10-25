@@ -58,6 +58,10 @@ async function readBody<T>(response: Response): Promise<T> {
     let detail = response.statusText || "request failed";
     try {
       const body = (await response.json()) as { detail?: unknown };
+      if (body && typeof body === "object" && "error" in body) {
+        const error = (body as { error?: { message?: unknown } }).error;
+        if (error && typeof error.message === "string") detail = error.message;
+      }
       if (typeof body.detail === "string") detail = body.detail;
       else if (Array.isArray(body.detail)) {
         detail = body.detail
