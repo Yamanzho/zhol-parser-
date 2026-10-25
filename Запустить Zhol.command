@@ -156,6 +156,31 @@ else
   log_line "image build skipped"
 fi
 
+# Проверка схемы новым образом до запуска служб, которые пишут в базу.
+# Базу с данными этот файл не обновляет: для этого есть «Обновить базу Zhol.command».
+printf '%s\n' "Проверяем схему базы."
+set +e
+compose run --rm --no-deps -T api python -m zhol.cli schema-check
+schema_status=$?
+set -e
+log_line "schema check status=${schema_status}"
+case "$schema_status" in
+  0) ;;
+  4)
+    printf '%s\n' "Новая пустая база: создаем таблицы."
+    compose run --rm --no-deps -T api alembic upgrade head || fail "Не удалось создать таблицы в пустой базе. Данные не удалялись."
+    ;;
+  5)
+    fail "Службы Жол не запускались и не перезапускались, данные не менялись. Схема базы не подходит этой версии программы (подробности выше). Обновление здесь не поможет, нужна проверка человеком."
+    ;;
+  3)
+    fail "Службы Жол не запускались и не перезапускались, данные не менялись. Схема базы не совпадает с программой (подробности выше). Чтобы обновить базу, дважды щелкните «Обновить базу Zhol.command»."
+    ;;
+  *)
+    fail "Не удалось проверить схему базы. Службы Жол не запускались и не перезапускались."
+    ;;
+esac
+
 # Профиль collector не включается: видимый Chrome ведет LaunchAgent.
 # --no-deps не пересоздает уже работающую базу.
 log_line "start api web worker browser-worker backup"
@@ -172,9 +197,6 @@ if printf '%s\n' "$collector_running" | grep -qx collector; then
 fi
 log_line "services running"
 printf '%s\n' "$stamp" > .cache/zhol-build-stamp
-
-printf '%s\n' "Применяем миграции. Существующие записи сохраняются."
-compose exec -T api alembic upgrade head || fail "Миграция базы не выполнена. Данные не удалялись."
 
 ports="$(python3 - << 'PY'
 from pathlib import Path

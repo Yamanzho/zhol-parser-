@@ -34,9 +34,15 @@ fi
 sub=""
 for arg in "$@"; do
   case "$arg" in
-    ps|up|build|exec) sub="$arg" ;;
+    ps|up|build|exec|run) sub="$arg" ;;
   esac
 done
+if [ "$sub" = "run" ]; then
+  if printf '%s' "$args" | grep -q 'schema-check'; then
+    exit "${ZHOL_FAKE_SCHEMA:-0}"
+  fi
+  exit 0
+fi
 if [ "$sub" = "ps" ]; then
   if printf '%s' "$args" | grep -q -- '-q'; then
     if [ "${ZHOL_FAKE_DB:-present}" = "missing" ]; then
@@ -216,3 +222,62 @@ def test_a_service_that_stays_down_is_a_startup_failure(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert "Служба db не работает." in result.stderr
     assert "Жол запущен" not in result.stdout
+
+
+APP_UP = "--profile backup up -d --no-build --no-deps api web worker browser-worker backup"
+
+
+def _launch(tmp_path: Path, name: str, **extra: str) -> tuple[subprocess.CompletedProcess[str], list[str]]:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _install_fakes(bin_dir)
+    root = tmp_path / name
+    root.mkdir()
+    _seed(root)
+    docker_log = tmp_path / "docker.log"
+    result = _run(root, bin_dir, tmp_path / "startup.log", docker_log, **extra)
+    return result, docker_log.read_text(encoding="utf-8").splitlines()
+
+
+def test_matching_schema_starts_services_without_migrating(tmp_path: Path) -> None:
+    result, recorded = _launch(tmp_path, "proj-match", ZHOL_FAKE_SCHEMA="0")
+    assert result.returncode == 0, result.stderr
+    check = next(i for i, line in enumerate(recorded) if "run --rm --no-deps -T api python -m zhol.cli schema-check" in line)
+    start = next(i for i, line in enumerate(recorded) if APP_UP in line)
+    assert check < start
+    assert all("alembic" not in line for line in recorded)
+
+
+def test_outdated_schema_stops_before_any_writer_starts(tmp_path: Path) -> None:
+    result, recorded = _launch(tmp_path, "proj-old", ZHOL_FAKE_SCHEMA="3")
+    assert result.returncode == 1
+    assert "Службы Жол не запускались и не перезапускались, данные не менялись." in result.stderr
+    assert "Обновить базу Zhol.command" in result.stderr
+    assert all(APP_UP not in line for line in recorded)
+    assert all("alembic" not in line for line in recorded)
+
+
+def test_newer_or_unknown_schema_stops_without_offering_upgrade(tmp_path: Path) -> None:
+    result, recorded = _launch(tmp_path, "proj-newer", ZHOL_FAKE_SCHEMA="5")
+    assert result.returncode == 1
+    assert "нужна проверка человеком" in result.stderr
+    assert "Обновить базу Zhol.command" not in result.stderr
+    assert all(APP_UP not in line for line in recorded)
+    assert all("alembic" not in line for line in recorded)
+
+
+def test_unreadable_schema_stops_before_any_writer_starts(tmp_path: Path) -> None:
+    result, recorded = _launch(tmp_path, "proj-unreadable", ZHOL_FAKE_SCHEMA="2")
+    assert result.returncode == 1
+    assert "Не удалось проверить схему базы." in result.stderr
+    assert all(APP_UP not in line for line in recorded)
+    assert all("alembic" not in line for line in recorded)
+
+
+def test_empty_database_gets_tables_before_services_start(tmp_path: Path) -> None:
+    result, recorded = _launch(tmp_path, "proj-empty", ZHOL_FAKE_SCHEMA="4")
+    assert result.returncode == 0, result.stderr
+    migrate = next(i for i, line in enumerate(recorded) if "run --rm --no-deps -T api alembic upgrade head" in line)
+    start = next(i for i, line in enumerate(recorded) if APP_UP in line)
+    assert migrate < start
+    assert all("exec -T api alembic" not in line for line in recorded)

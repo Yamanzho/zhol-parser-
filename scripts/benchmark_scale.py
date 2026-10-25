@@ -16,7 +16,6 @@ from alembic.config import Config
 from sqlalchemy import create_engine, event, select, text
 from sqlalchemy.orm import sessionmaker
 
-import zhol.browser.discovery.engine  # noqa: F401
 from zhol.agents.scout.identity import Profile, classify_links, relate
 from zhol.agents.scout.identity_store import relate_stored
 from zhol.agents.scout.match_index import rebuild_match_keys

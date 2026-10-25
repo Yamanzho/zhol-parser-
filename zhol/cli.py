@@ -246,6 +246,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print stored company links that are not a confirmed match. Does not change rows.",
     )
     commands.add_parser(
+        "schema-check",
+        parents=[_now_parent()],
+        help="Compare the database revision with this code. Read-only. Exit 0 match, 3 older, 5 newer or unknown, 4 empty, 2 unreadable.",
+    )
+    commands.add_parser(
         "rebuild-match-keys",
         parents=[_now_parent()],
         help="Rebuild company match keys from current rows. Does not change companies.",
@@ -1035,6 +1040,8 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
         return cmd_identity_report(args, factory)
     if args.command == "rebuild-match-keys":
         return cmd_rebuild_match_keys(args, factory)
+    if args.command == "schema-check":
+        return cmd_schema_check(args)
     if args.command == "jobs":
         return cmd_jobs(args)
     if getattr(args, "now", None) is not None:
@@ -1114,12 +1121,33 @@ def cmd_rebuild_match_keys(_args: argparse.Namespace, factory) -> int:
     return 0
 
 
+def cmd_schema_check(_args: argparse.Namespace) -> int:
+    import os
+
+    from zhol.schema_check import UNREADABLE, inspect
+
+    database_url = os.environ.get("DATABASE_URL", "").strip()
+    if not database_url:
+        print("DATABASE_URL не задан. Схему базы проверить нельзя.", file=sys.stderr)
+        return UNREADABLE
+    try:
+        state = inspect(database_url)
+    except Exception as exc:
+        print(f"Не удалось прочитать ревизию базы ({type(exc).__name__}). Службы не запускаются.", file=sys.stderr)
+        return UNREADABLE
+    print(state.message, file=sys.stdout if state.code == 0 else sys.stderr)
+    return state.code
+
+
 def cmd_identity_report(_args: argparse.Namespace, factory) -> int:
     from zhol.agents.scout.identity_report import render
     from zhol.db.base import get_session_factory
 
     maker = factory or get_session_factory()
     with maker() as session:
+        connection = session.connection()
+        if connection.dialect.name == "postgresql":
+            connection.exec_driver_sql("SET TRANSACTION READ ONLY")
         print(render(session))
         session.rollback()
     return 0

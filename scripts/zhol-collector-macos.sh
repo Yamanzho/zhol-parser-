@@ -492,6 +492,20 @@ clear_crashes() {
   rm -f "$CRASH_FILE"
 }
 
+schema_matches() {
+  local message status
+  set +e
+  message="$("${ROOT}/.venv/bin/python" -m zhol.cli schema-check 2>&1)"
+  status=$?
+  set -e
+  if [[ "$status" -eq 0 ]]; then
+    log_info "schema check passed"
+    return 0
+  fi
+  log_error "schema check failed status=${status}: ${message}"
+  return 1
+}
+
 configure_collector_env() {
   export ZHOL_CHROME_HEADLESS=0
   unset ZHOL_CHROME_CONTAINER
@@ -564,6 +578,10 @@ cmd_run() {
   fi
   if ! configure_collector_env; then
     exit 75
+  fi
+  if ! schema_matches; then
+    log_error "collector paused until the database is upgraded and the service is started again"
+    exit 0
   fi
   log_info "starting worker queue=collector headless=${ZHOL_CHROME_HEADLESS} profile=${ZHOL_CHROME_PROFILE}"
   "${ROOT}/.venv/bin/python" -m zhol.worker --queue collector &

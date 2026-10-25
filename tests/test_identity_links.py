@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import zhol.browser.discovery.engine  # noqa: F401  # completes the identity import cycle
 from alembic import command
 from sqlalchemy import event, func, select, text
 from sqlalchemy.orm import sessionmaker

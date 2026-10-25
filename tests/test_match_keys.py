@@ -6,7 +6,6 @@ import pytest
 from alembic import command
 from sqlalchemy import func, select, text
 
-import zhol.browser.discovery.engine  # noqa: F401
 from tests.conftest import alembic_config
 from tests.test_identity_links import _card, _factory, _place
 from zhol.agents.scout.identity_store import decide
