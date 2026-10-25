@@ -420,6 +420,10 @@ Indexed company lookup and exports past 5000 rows (25.10.2026):
 
 Migration `b6d2f4a81c30` adds `company_match_keys` plus indexes for `lower(companies.city)`, the newest snapshot of a company and platform, the job claim and lease queries, and batch items ordered by id. Downgrade drops those objects and does not change company rows. The lookup reads the keys instead of every company in the city. It was not applied to the working database.
 
-CSV and JSON exports no longer stop at 5000 rows. Rows are written to a temporary file and the file is removed after the response or on error. Pages use the company id or batch-item id inside one repeatable-read transaction. Excel still stops at 1 048 575 data rows, which is the worksheet limit. Cells that start with `=`, `+`, `-`, or `@` are prefixed so a spreadsheet does not treat them as formulas.
+CSV and JSON exports no longer stop at 5000 rows. Rows are written to a temporary file and the file is removed after the response or on error. Pages use the company id or batch-item id inside one repeatable-read transaction. Excel still stops at 1 048 575 data rows, which is the worksheet limit. Cells that start with `=`, `+`, `-`, or `@` are prefixed so a spreadsheet does not treat them as formulas. Each export page is dropped from the session after it is written, so the identity map does not keep every company until the file is finished.
+
+Match keys follow ORM writes (25.10.2026):
+
+`company_match_keys` is updated in the same transaction when a company or a snapshot is inserted, updated, or a snapshot is deleted through the SQLAlchemy unit of work. Direct SQL, `bulk_insert_mappings`, and `executemany` do not update the keys. That path is unsupported until `python -m zhol.cli rebuild-match-keys`. The command replaces every key from the current companies and the newest snapshot of each platform. It is safe to run again. It does not merge, split, or delete companies. The catalog lookup is not cached, so a process that keeps running across a migration sees the new table on the next write. Stop the API before `upgrade` or `downgrade`, then start it again.
 
 

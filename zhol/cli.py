@@ -245,6 +245,11 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[_now_parent()],
         help="Print stored company links that are not a confirmed match. Does not change rows.",
     )
+    commands.add_parser(
+        "rebuild-match-keys",
+        parents=[_now_parent()],
+        help="Rebuild company match keys from current rows. Does not change companies.",
+    )
 
     jobs = commands.add_parser("jobs", help="Call the collection API without opening the panel")
     jobs.add_argument("--api", default="http://127.0.0.1:18080")
@@ -1028,6 +1033,8 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
         return cmd_demo(args)
     if args.command == "identity-report":
         return cmd_identity_report(args, factory)
+    if args.command == "rebuild-match-keys":
+        return cmd_rebuild_match_keys(args, factory)
     if args.command == "jobs":
         return cmd_jobs(args)
     if getattr(args, "now", None) is not None:
@@ -1093,6 +1100,17 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
     if args.command == "bek-audit-plan":
         return cmd_bek_audit_plan(args, factory)
     print(now().isoformat())
+    return 0
+
+
+def cmd_rebuild_match_keys(_args: argparse.Namespace, factory) -> int:
+    from zhol.agents.scout.match_index import rebuild_match_keys
+    from zhol.db.base import get_session_factory
+
+    maker = factory or get_session_factory()
+    with maker() as session, session.begin():
+        count = rebuild_match_keys(session.connection())
+    print(f"Ключи сопоставления пересобраны: {count}. Компании, снимки и идентификаторы площадок не изменялись.")
     return 0
 
 

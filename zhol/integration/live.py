@@ -201,18 +201,20 @@ def iter_job_records(session: Session, job_id: int) -> Iterator[dict[str, Any]]:
     if batch is None:
         return
     platform = _platform_of(payload)
+    batch_id = batch.id
     last_id = 0
     while True:
         rows = session.scalars(
             select(CollectionBatchItem)
-            .where(CollectionBatchItem.batch_id == batch.id, CollectionBatchItem.id > last_id)
+            .where(CollectionBatchItem.batch_id == batch_id, CollectionBatchItem.id > last_id)
             .order_by(CollectionBatchItem.id)
             .limit(200)
         ).all()
         if not rows:
             return
-        yield from _records_for_items(session, rows, platform)
         last_id = rows[-1].id
+        yield from _records_for_items(session, rows, platform)
+        session.expunge_all()
 
 
 def _company_filters(q: str, platform: str | None, city: str | None) -> list:
@@ -270,8 +272,9 @@ def iter_companies(session: Session, *, q: str, platform: str | None, city: str 
         rows = list(session.scalars(stmt).all())
         if not rows:
             return
-        yield from _records_for_companies(session, rows, platform)
         last_id = rows[-1].id
+        yield from _records_for_companies(session, rows, platform)
+        session.expunge_all()
 
 
 def _stable_read(session: Session) -> None:

@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-app = FastAPI(title="Zhol", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Zhol", version="0.2.0", lifespan=lifespan)
 register_integration(app)
 app.include_router(local_orders_router)
 app.include_router(local_access_router)

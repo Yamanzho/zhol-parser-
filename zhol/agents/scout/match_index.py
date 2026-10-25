@@ -2,6 +2,13 @@
 
 The keys are derived from the company name and from the newest snapshot of one
 platform. Rebuilding them does not merge, split, or delete companies.
+
+Supported writes are the SQLAlchemy ORM unit of work: insert, update, and
+delete of `Company` and `CardSnapshot`. Those events keep the keys in the same
+transaction. Direct SQL, `bulk_insert_mappings`, and `executemany` do not fire
+the events. After any such write, run `rebuild_match_keys` (CLI:
+`zhol rebuild-match-keys`) before another import. The command is idempotent
+and does not change companies, snapshots, or platform ids.
 """
 
 from __future__ import annotations
@@ -28,6 +35,7 @@ def install() -> None:
     event.listen(Company, "after_update", _on_company, propagate=True)
     event.listen(CardSnapshot, "after_insert", _on_snapshot, propagate=True)
     event.listen(CardSnapshot, "after_update", _on_snapshot, propagate=True)
+    event.listen(CardSnapshot, "after_delete", _on_snapshot, propagate=True)
     _INSTALLED = True
 
 
@@ -195,14 +203,9 @@ def _phone_list(fields: object) -> list[str]:
 
 
 def _keys_ready(connection) -> bool:
-    cached = connection.info.get("zhol_match_keys")
-    if cached is not None:
-        return bool(cached)
+    """Check the catalog each time. A cached answer stays wrong after a migration."""
     if connection.dialect.name != "postgresql":
-        connection.info["zhol_match_keys"] = False
         return False
-    ready = bool(
+    return bool(
         connection.execute(text("SELECT to_regclass('public.company_match_keys') IS NOT NULL")).scalar()
     )
-    connection.info["zhol_match_keys"] = ready
-    return ready
