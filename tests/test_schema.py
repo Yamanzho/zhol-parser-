@@ -17,6 +17,7 @@ from zhol.db.base import Base
 
 UNIQUE_COLUMNS = {
     ("companies", ("id_2gis",)),
+    ("company_match_keys", ("company_id", "platform", "kind", "value")),
     ("deals", ("syntony_deal_id",)),
     ("invoices", ("idempotency_key",)),
     ("jobs", ("dedup_key",)),
@@ -32,6 +33,7 @@ UNIQUE_COLUMNS = {
 
 FOREIGN_KEYS = {
     ("company_platform_ids", "companies"),
+    ("company_match_keys", "companies"),
     ("company_profiles", "companies"),
     ("card_snapshots", "companies"),
     ("audits", "companies"),

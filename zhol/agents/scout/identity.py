@@ -8,6 +8,7 @@ address stays unresolved. Similar names are not scored.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from zhol.agents.scout.match import Candidate, Identity, verdict_for
 from zhol.agents.scout.normalize import addresses_compatible, addresses_conflict, names_compatible
@@ -34,6 +35,23 @@ class Profile:
 class Relation:
     kind: str
     phone_confirmed: bool
+
+
+def classify_links(marked: list[tuple[Any, str, bool]]) -> tuple[str, Any | None, bool]:
+    """attach, review, or none.
+
+    One `same` company is attached only when every other candidate is neither
+    `same` nor `ambiguous`. A confirmed platform id is decided before this.
+    """
+    same = [item for item in marked if item[1] == "same"]
+    ambiguous = [item for item in marked if item[1] == "ambiguous"]
+    if len(same) == 1 and not ambiguous:
+        subject, _kind, phone = same[0]
+        return "attach", subject, bool(phone)
+    if same or ambiguous:
+        subject = ambiguous[0][0] if ambiguous else same[0][0]
+        return "review", subject, False
+    return "none", None, False
 
 
 def relate(left: Profile, right: Profile) -> Relation:

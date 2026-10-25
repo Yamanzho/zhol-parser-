@@ -29,6 +29,7 @@ NOW = sql_text("now()")
 
 class Company(Base):
     __tablename__ = "companies"
+    __table_args__ = (Index("ix_companies_city_lower", sql_text("lower(city)")),)
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     # Internal identity is `id`. A 2GIS firm id is optional: Yandex-only and Google-only companies leave it empty.
@@ -82,6 +83,13 @@ class CardSnapshot(Base):
         CheckConstraint(
             "match_status in ('found','other_address','not_found')",
             name="ck_card_snapshots_match_status",
+        ),
+        Index(
+            "ix_card_snapshots_latest",
+            "company_id",
+            "platform",
+            sql_text("collected_at DESC"),
+            sql_text("id DESC"),
         ),
     )
 
@@ -335,6 +343,21 @@ class HumanTask(Base):
 
 class Job(Base):
     __tablename__ = "jobs"
+    __table_args__ = (
+        Index(
+            "ix_jobs_ready",
+            "queue",
+            "run_after",
+            "id",
+            postgresql_where=sql_text("status IN ('queued', 'failed')"),
+        ),
+        Index(
+            "ix_jobs_running_lease",
+            "run_after",
+            "id",
+            postgresql_where=sql_text("status = 'running'"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     type: Mapped[str] = mapped_column(Text, nullable=False)
@@ -445,6 +468,7 @@ class CollectionBatchItem(Base):
             "status in ('pending','in_progress','completed','failed','blocked')",
             name="ck_collection_batch_items_status",
         ),
+        Index("ix_collection_batch_items_batch_id", "batch_id", "id"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -557,3 +581,31 @@ class ListingSubmissionAttempt(Base):
     screenshot_before: Mapped[str | None] = mapped_column(Text)
     screenshot_after: Mapped[str | None] = mapped_column(Text)
     at: Mapped[datetime | None] = mapped_column(TZ, server_default=NOW)
+
+
+class CompanyMatchKey(Base):
+    """Search keys for identity lookup. They do not decide which company owns a card."""
+
+    __tablename__ = "company_match_keys"
+    __table_args__ = (
+        CheckConstraint("kind in ('name','phone')", name="ck_company_match_keys_kind"),
+        CheckConstraint("platform in ('','2gis','yandex','google')", name="ck_company_match_keys_platform"),
+        UniqueConstraint("company_id", "platform", "kind", "value", name="uq_company_match_keys"),
+        Index("ix_company_match_keys_lookup", "city", "kind", "platform", "value"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id", ondelete="CASCADE"), nullable=False)
+    city: Mapped[str] = mapped_column(Text, nullable=False)
+    platform: Mapped[str] = mapped_column(Text, nullable=False, server_default=sql_text("''"))
+    kind: Mapped[str] = mapped_column(Text, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+def _install_match_index() -> None:
+    from zhol.agents.scout.match_index import install
+
+    install()
+
+
+_install_match_index()

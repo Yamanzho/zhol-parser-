@@ -32,7 +32,8 @@ from zhol.agents.scout.browser_maps import BrowserCollectionRefused
 from zhol.agents.scout.browser_yandex import SOURCE_MODE as YANDEX_MODE
 from zhol.agents.scout.catalog import BatchError
 from zhol.agents.scout.fields import field_keys
-from zhol.agents.scout.identity import Profile, Ref, relate
+from zhol.agents.scout.identity import Profile, Ref, classify_links
+from zhol.agents.scout.identity_store import relate_stored
 from zhol.agents.scout.live_2gis import _mark, _progress, _save, _status
 from zhol.agents.scout.normalize import phone_parts
 from zhol.agents.scout.persist import find_reusable, insert_snapshot, remember_collection_context, remember_platform_id, remember_search_query
@@ -706,18 +707,10 @@ def _find_company(session: Session, place: MapPlace) -> tuple[Company | None, st
         company = session.get(Company, owner.company_id)
         return company, "platform_id"
     incoming = Profile(place.name, place.address, place.phones, (Ref(place.platform, place.external_id),))
-    same: list[Company] = []
-    ambiguous = False
-    rows = session.scalars(select(Company).where(Company.city == place.city)).all()
-    for company in rows:
-        relation = relate(incoming, _stored_profile(session, company, place.platform))
-        if relation.kind == "same":
-            same.append(company)
-        elif relation.kind == "ambiguous":
-            ambiguous = True
-    if len(same) == 1:
-        return same[0], "same_identity"
-    if len(same) > 1 or ambiguous:
+    action, company, _phone = classify_links(relate_stored(session, place.city, place.platform, incoming))
+    if action == "attach":
+        return company, "same_identity"
+    if action == "review":
         return None, "ambiguous"
     return None, None
 

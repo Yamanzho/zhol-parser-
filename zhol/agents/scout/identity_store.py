@@ -16,11 +16,13 @@ from zhol.agents.scout.fields import field_keys
 from zhol.agents.scout.identity import (
     Profile,
     Ref,
+    classify_links,
     item_key,
     origin_platform,
     profile_from_branch,
     relate,
 )
+from zhol.agents.scout.match_index import candidate_ids
 from zhol.agents.scout.persist import find_reusable, insert_snapshot, open_task, remember_platform_id
 from zhol.browser.discovery.types import Branch, PlatformEvidence
 from zhol.db.models import CardSnapshot, CollectionBatch, CollectionBatchItem, Company, CompanyPlatformId
@@ -139,21 +141,30 @@ def decide(session: Session, branch: Branch) -> Outcome:
     if len(owners) == 1:
         return Outcome("attach", owners[0], "platform_id", phone_confirmed=True)
     incoming = profile_from_branch(branch)
-    matches: list[tuple[Company, bool]] = []
-    ambiguous: list[Company] = []
-    for stored in _stored(session, branch.city, origin_platform(branch)):
-        relation = relate(incoming, stored.profile)
-        if relation.kind == "same":
-            matches.append((stored.company, relation.phone_confirmed))
-        elif relation.kind == "ambiguous":
-            ambiguous.append(stored.company)
-    if len(matches) == 1 and not ambiguous:
-        company, phone = matches[0]
+    action, company, phone = classify_links(
+        relate_stored(session, branch.city, origin_platform(branch), incoming)
+    )
+    if action == "attach":
         return Outcome("attach", company, "identity", phone_confirmed=phone)
-    if matches or ambiguous:
-        company = ambiguous[0] if ambiguous else matches[0][0]
+    if action == "review":
         return Outcome("review", company, "ambiguous")
     return Outcome("create", None, "new")
+
+
+def relate_stored(
+    session: Session,
+    city: str | None,
+    platform: str | None,
+    incoming: Profile,
+) -> list[tuple[Company, str, bool]]:
+    """Compare one card with indexed candidates. This does not write."""
+    ids = candidate_ids(session, city=city, platform=platform, name=incoming.name, phones=incoming.phones)
+    marked: list[tuple[Company, str, bool]] = []
+    for stored in _profiles(session, ids, platform):
+        relation = relate(incoming, stored.profile)
+        if relation.kind in {"same", "ambiguous"}:
+            marked.append((stored.company, relation.kind, relation.phone_confirmed))
+    return marked
 
 
 def _owners(session: Session, profile: Profile) -> list[Company]:
@@ -179,19 +190,24 @@ def _owner(session: Session, ref: Ref) -> Company | None:
     return session.get(Company, row.company_id)
 
 
-def _stored(session: Session, city: str | None, platform: str | None) -> list[Stored]:
-    if not city:
+def _profiles(session: Session, ids: list[int], platform: str | None) -> list[Stored]:
+    if not ids:
         return []
-    companies = session.scalars(select(Company).where(Company.city == city)).all()
+    companies = list(session.scalars(select(Company).where(Company.id.in_(ids))).all())
     if not companies:
         return []
-    ids = [company.id for company in companies]
-    snapshots = session.scalars(select(CardSnapshot).where(CardSnapshot.company_id.in_(ids))).all()
-    platforms = session.scalars(select(CompanyPlatformId).where(CompanyPlatformId.company_id.in_(ids))).all()
     by_company: dict[int, list[CardSnapshot]] = {}
-    for row in snapshots:
-        if row.company_id is not None:
-            by_company.setdefault(row.company_id, []).append(row)
+    if platform:
+        snapshots = session.scalars(
+            select(CardSnapshot)
+            .where(CardSnapshot.company_id.in_(ids), CardSnapshot.platform == platform)
+            .distinct(CardSnapshot.company_id)
+            .order_by(CardSnapshot.company_id, CardSnapshot.collected_at.desc(), CardSnapshot.id.desc())
+        ).all()
+        for row in snapshots:
+            if row.company_id is not None:
+                by_company[row.company_id] = [row]
+    platforms = session.scalars(select(CompanyPlatformId).where(CompanyPlatformId.company_id.in_(ids))).all()
     refs: dict[int, list[Ref]] = {}
     for row in platforms:
         if row.external_id:

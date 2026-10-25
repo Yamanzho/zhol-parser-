@@ -29,7 +29,6 @@ from zhol.integration.schema import (
     LIVE_EXPORT_NOTES,
     PLATFORM_LABEL,
     IntegrationError,
-    ensure_export_size,
     blank,
     collection_limit,
     company_record,
@@ -193,6 +192,7 @@ def job_results(session: Session, job_id: int, limit: int, offset: int) -> dict[
 
 
 def iter_job_records(session: Session, job_id: int) -> Iterator[dict[str, Any]]:
+    _stable_read(session)
     job = session.get(Job, job_id)
     if job is None or job.type != JOB_TYPE:
         raise IntegrationError(404, "not_found", "Задание не найдено.")
@@ -201,28 +201,40 @@ def iter_job_records(session: Session, job_id: int) -> Iterator[dict[str, Any]]:
     if batch is None:
         return
     platform = _platform_of(payload)
-    total = int(
-        session.scalar(
-            select(func.count())
-            .select_from(CollectionBatchItem)
-            .where(CollectionBatchItem.batch_id == batch.id)
-        )
-        or 0
-    )
-    ensure_export_size(total)
-    offset = 0
+    last_id = 0
     while True:
         rows = session.scalars(
             select(CollectionBatchItem)
-            .where(CollectionBatchItem.batch_id == batch.id)
+            .where(CollectionBatchItem.batch_id == batch.id, CollectionBatchItem.id > last_id)
             .order_by(CollectionBatchItem.id)
-            .limit(100)
-            .offset(offset)
+            .limit(200)
         ).all()
         if not rows:
             return
         yield from _records_for_items(session, rows, platform)
-        offset += len(rows)
+        last_id = rows[-1].id
+
+
+def _company_filters(q: str, platform: str | None, city: str | None) -> list:
+    filters = []
+    term = q.strip()
+    if term:
+        like = _like(term)
+        filters.append(
+            or_(
+                Company.name.ilike(like, escape="\\"),
+                Company.city.ilike(like, escape="\\"),
+                Company.niche.ilike(like, escape="\\"),
+                Company.whatsapp.ilike(like, escape="\\"),
+            )
+        )
+    if city and city.strip():
+        filters.append(func.lower(Company.city) == city.strip().lower())
+    if platform:
+        by_identity = select(CompanyPlatformId.company_id).where(CompanyPlatformId.platform == platform)
+        by_snapshot = select(CardSnapshot.company_id).where(CardSnapshot.platform == platform)
+        filters.append(or_(Company.id.in_(by_identity), Company.id.in_(by_snapshot)))
+    return filters
 
 
 def list_companies(
@@ -237,41 +249,39 @@ def list_companies(
     if platform is not None and platform not in PLATFORM_LABEL:
         raise IntegrationError(422, "validation_error", "Фильтр площадки: 2gis, google или yandex.")
     stmt = select(Company)
-    term = q.strip()
-    if term:
-        like = _like(term)
-        stmt = stmt.where(
-            or_(
-                Company.name.ilike(like, escape="\\"),
-                Company.city.ilike(like, escape="\\"),
-                Company.niche.ilike(like, escape="\\"),
-                Company.whatsapp.ilike(like, escape="\\"),
-            )
-        )
-    if city and city.strip():
-        stmt = stmt.where(func.lower(Company.city) == city.strip().lower())
-    if platform:
-        by_identity = select(CompanyPlatformId.company_id).where(CompanyPlatformId.platform == platform)
-        by_snapshot = select(CardSnapshot.company_id).where(CardSnapshot.platform == platform)
-        stmt = stmt.where(or_(Company.id.in_(by_identity), Company.id.in_(by_snapshot)))
+    for item in _company_filters(q, platform, city):
+        stmt = stmt.where(item)
     total = int(session.scalar(select(func.count()).select_from(stmt.subquery())) or 0)
     rows = session.scalars(stmt.order_by(Company.id.desc()).limit(limit).offset(offset)).all()
     return page_body(_records_for_companies(session, rows, platform), total, limit, offset)
 
 
 def iter_companies(session: Session, *, q: str, platform: str | None, city: str | None) -> Iterator[dict[str, Any]]:
-    offset = 0
+    if platform is not None and platform not in PLATFORM_LABEL:
+        raise IntegrationError(422, "validation_error", "Фильтр площадки: 2gis, google или yandex.")
+    _stable_read(session)
+    last_id: int | None = None
     while True:
-        body = list_companies(session, q=q, platform=platform, city=city, limit=100, offset=offset)
-        if offset == 0:
-            ensure_export_size(int(body["total"]))
-        items = body["items"]
-        if not items:
+        stmt = select(Company).order_by(Company.id.desc()).limit(200)
+        for item in _company_filters(q, platform, city):
+            stmt = stmt.where(item)
+        if last_id is not None:
+            stmt = stmt.where(Company.id < last_id)
+        rows = list(session.scalars(stmt).all())
+        if not rows:
             return
-        yield from items
-        offset += len(items)
-        if offset >= int(body["total"]):
-            return
+        yield from _records_for_companies(session, rows, platform)
+        last_id = rows[-1].id
+
+
+def _stable_read(session: Session) -> None:
+    """One snapshot for the whole export, so pages neither skip nor repeat rows."""
+    session.info["zhol_repeatable_read"] = True
+    connection = session.connection()
+    if session.info.get("zhol_admin_readonly") or session.info.get("zhol_isolation_set"):
+        return
+    connection.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+    session.info["zhol_isolation_set"] = True
 
 
 def company_public(session: Session, company_id: int) -> dict[str, Any]:

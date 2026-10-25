@@ -522,7 +522,7 @@ def test_status_migration_applies_only_on_the_isolated_database(migrated_engine,
 
     cfg = alembic_config(postgres_url)
     with migrated_engine.connect() as conn:
-        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "e5a9b3c20f41"
+        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "b6d2f4a81c30"
         before = conn.execute(text("SELECT count(*) FROM companies")).scalar_one()
     command.downgrade(cfg, "d4f8a2c19e30")
     with migrated_engine.connect() as conn:
@@ -557,7 +557,7 @@ def test_status_migration_applies_only_on_the_isolated_database(migrated_engine,
         assert conn.execute(text("SELECT count(*) FROM companies")).scalar_one() == before
     command.upgrade(cfg, "head")
     with migrated_engine.connect() as conn:
-        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "e5a9b3c20f41"
+        assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "b6d2f4a81c30"
 
 
 _WAITING_BATCH = """

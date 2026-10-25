@@ -414,4 +414,12 @@ Collection export size (25.10.2026):
 
 `GET /api/v1/jobs/{id}/export` and `GET /api/v1/export` still stop at 5000 rows. The count is checked before the remaining rows are read. CSV, JSON, and Excel are written row by row. Passing the cap returns the same Russian error and does not add a table or a migration.
 
+Indexed company lookup and exports past 5000 rows (25.10.2026):
+
+`maps` and discovery now share `classify_links`. A confirmed platform id stays on its company. Otherwise one `same` company is attached only when no other candidate is `same` or `ambiguous`. Search `choose()` can still open one clear card when the results also contain a phone branch. Existing company, snapshot, and platform-id rows are not rewritten. `python -m zhol.cli identity-report` prints pairs of snapshots on one company that are not a confirmed phone match and then rolls back.
+
+Migration `b6d2f4a81c30` adds `company_match_keys` plus indexes for `lower(companies.city)`, the newest snapshot of a company and platform, the job claim and lease queries, and batch items ordered by id. Downgrade drops those objects and does not change company rows. The lookup reads the keys instead of every company in the city. It was not applied to the working database.
+
+CSV and JSON exports no longer stop at 5000 rows. Rows are written to a temporary file and the file is removed after the response or on error. Pages use the company id or batch-item id inside one repeatable-read transaction. Excel still stops at 1 048 575 data rows, which is the worksheet limit. Cells that start with `=`, `+`, `-`, or `@` are prefixed so a spreadsheet does not treat them as formulas.
+
 

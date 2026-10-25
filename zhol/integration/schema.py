@@ -9,9 +9,10 @@ from __future__ import annotations
 import csv
 import io
 import json
+import tempfile
 import zipfile
-from collections.abc import Sequence
-from typing import Iterable, Iterator
+from pathlib import Path
+from typing import BinaryIO, Iterable
 from xml.sax.saxutils import escape
 
 API_VERSION = "v1"
@@ -23,7 +24,8 @@ COLLECTION_LIMIT_MAX = 500
 COLLECTION_LIMIT_DEFAULT = 20
 PAGE_LIMIT_MAX = 100
 PAGE_OFFSET_MAX = 1_000_000
-EXPORT_ROW_CAP = 5000
+# Excel worksheet limit, including the header row. CSV and JSON have no row cap.
+XLSX_ROW_LIMIT = 1_048_576
 RESULT_COLUMNS = (
     ("name", "Название"),
     ("phone", "Телефон"),
@@ -39,6 +41,7 @@ LIVE_EXPORT_NOTES = (
     "Пустая ячейка значит, что поле не было видно. Ноль туда не подставляется.",
     "Яндекс Карты в этой выгрузке есть, если они были собраны. Старая книга рассылки по-прежнему без листа Яндекса.",
     "Площадка может быть закрыта разрешением или правилами сервиса. Тогда задание не создаётся и внешние сайты не открываются.",
+    "Книга Excel вмещает не больше 1048575 строк данных. Для большего числа строк выберите CSV или JSON.",
 )
 DEMO_EXPORT_NOTES = (
     "Это демонстрационные компании. Они не записаны в рабочую базу и не получены с карт.",
@@ -169,106 +172,120 @@ def job_document(body: dict) -> dict:
     }
 
 
-def ensure_export_size(total: int) -> None:
-    if total > EXPORT_ROW_CAP:
-        raise IntegrationError(
-            400,
-            "rejected",
-            f"В выгрузке больше {EXPORT_ROW_CAP} строк. Сузьте фильтр или выберите одно задание.",
-        )
+def export_file(
+    fmt: str,
+    rows: Iterable[dict],
+    *,
+    notes: tuple[str, ...] | list[str],
+) -> tuple[Path, str, str]:
+    """Write rows to a temporary file. The caller deletes the file after sending it."""
+    if fmt not in EXPORT_FORMATS:
+        raise IntegrationError(400, "rejected", "Формат выгрузки: xlsx, csv или json.")
+    suffix = {"csv": ".csv", "json": ".json", "xlsx": ".xlsx"}[fmt]
+    media = {
+        "csv": "text/csv; charset=utf-8",
+        "json": "application/json; charset=utf-8",
+        "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }[fmt]
+    filename = f"zhol-companies{suffix}"
+    handle = tempfile.NamedTemporaryFile(prefix="zhol-export-", suffix=suffix, delete=False)
+    path = Path(handle.name)
+    handle.close()
+    try:
+        with path.open("wb") as target:
+            if fmt == "csv":
+                _write_csv(rows, target)
+            elif fmt == "json":
+                _write_json(rows, notes, target)
+            else:
+                _write_xlsx(rows, notes, target)
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    return path, media, filename
 
 
 def export_bytes(fmt: str, rows: Iterable[dict], *, notes: tuple[str, ...] | list[str]) -> tuple[bytes, str, str]:
-    """Write one row at a time. A known oversized list is refused before the file is built."""
-    if fmt not in EXPORT_FORMATS:
-        raise IntegrationError(400, "rejected", "Формат выгрузки: xlsx, csv или json.")
-    if isinstance(rows, Sequence) and not isinstance(rows, (str, bytes)):
-        ensure_export_size(len(rows))
-    if fmt == "csv":
-        return _csv(rows), "text/csv; charset=utf-8", "zhol-companies.csv"
-    if fmt == "json":
-        return _json_export(rows, notes), "application/json; charset=utf-8", "zhol-companies.json"
-    return _xlsx(rows, notes), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "zhol-companies.xlsx"
-
-
-def iter_capped(rows: Iterator[dict]) -> Iterator[dict]:
-    count = 0
-    for row in rows:
-        count += 1
-        ensure_export_size(count)
-        yield row
+    path, media, filename = export_file(fmt, rows, notes=notes)
+    try:
+        return path.read_bytes(), media, filename
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def _export_item(row: dict) -> dict:
     return {key: row.get(key) for key, _title in RESULT_COLUMNS}
 
 
-def _csv(rows: Iterable[dict]) -> bytes:
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
+def _spreadsheet_text(value: object) -> str:
+    text = "" if value is None else str(value)
+    if text[:1] in {"=", "+", "-", "@", "\t", "\r"}:
+        return "'" + text
+    return text
+
+
+def _write_csv(rows: Iterable[dict], target: BinaryIO) -> None:
+    text = io.TextIOWrapper(target, encoding="utf-8-sig", newline="", write_through=True)
+    writer = csv.writer(text)
     writer.writerow([title for _key, title in RESULT_COLUMNS])
-    for row in _stream_rows(rows):
-        writer.writerow(["" if row.get(key) is None else row.get(key) for key, _title in RESULT_COLUMNS])
-    return buffer.getvalue().encode("utf-8-sig")
+    for row in rows:
+        writer.writerow([_spreadsheet_text(row.get(key)) for key, _title in RESULT_COLUMNS])
+    text.detach()
 
 
-def _json_export(rows: Iterable[dict], notes: tuple[str, ...] | list[str]) -> bytes:
-    chunks = ["{", '"items": [']
-    count = 0
-    for row in _stream_rows(rows):
-        if count:
-            chunks.append(",")
-        chunks.append(json.dumps(_export_item(row), ensure_ascii=False))
-        count += 1
-    chunks.append("],")
-    chunks.append('"total": ' + str(count) + ",")
-    chunks.append('"notes": ' + json.dumps(list(notes), ensure_ascii=False))
-    chunks.append("}")
-    return "".join(chunks).encode("utf-8")
-
-
-def _stream_rows(rows: Iterable[dict]) -> Iterator[dict]:
+def _write_json(rows: Iterable[dict], notes: tuple[str, ...] | list[str], target: BinaryIO) -> None:
+    target.write(b'{"items":[')
     count = 0
     for row in rows:
+        if count:
+            target.write(b",")
+        target.write(json.dumps(_export_item(row), ensure_ascii=False).encode("utf-8"))
         count += 1
-        ensure_export_size(count)
-        yield row
+    tail = '],"total":' + str(count) + ',"notes":' + json.dumps(list(notes), ensure_ascii=False) + "}"
+    target.write(tail.encode("utf-8"))
 
 
-def _xlsx(rows: Iterable[dict], notes: tuple[str, ...] | list[str]) -> bytes:
+def _write_xlsx(rows: Iterable[dict], notes: tuple[str, ...] | list[str], target: BinaryIO) -> None:
     note_rows = [["Пояснение"]]
     for note in notes:
         note_rows.append([note])
-    payload = {
-        "[Content_Types].xml": _content_types(),
-        "_rels/.rels": _root_rels(),
-        "xl/workbook.xml": _workbook(),
-        "xl/_rels/workbook.xml.rels": _workbook_rels(),
-        "xl/styles.xml": _styles(),
-        "xl/worksheets/sheet1.xml": _sheet_stream(rows),
-        "xl/worksheets/sheet2.xml": _sheet(note_rows),
-    }
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as book:
-        for name, xml in payload.items():
-            book.writestr(name, xml)
-    return buffer.getvalue()
-
-
-def _sheet(rows: list[list[str]]) -> str:
-    return _sheet_xml(rows)
-
-
-def _sheet_stream(rows: Iterable[dict]) -> str:
-    header = [title for _key, title in RESULT_COLUMNS]
-    body = [_sheet_open(), _row_xml(1, header)]
-    index = 1
-    for row in _stream_rows(rows):
-        index += 1
-        values = ["" if row.get(key) is None else str(row.get(key)) for key, _title in RESULT_COLUMNS]
-        body.append(_row_xml(index, values))
-    body.append("</sheetData></worksheet>")
-    return "".join(body)
+    sheet = tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+b")
+    try:
+        sheet.write(_sheet_open().encode("utf-8"))
+        header = [title for _key, title in RESULT_COLUMNS]
+        sheet.write(_row_xml(1, header).encode("utf-8"))
+        index = 1
+        for row in rows:
+            index += 1
+            if index > XLSX_ROW_LIMIT:
+                raise IntegrationError(
+                    400,
+                    "rejected",
+                    "В книге Excel больше 1048575 строк. Выберите CSV или JSON.",
+                )
+            values = [_spreadsheet_text(row.get(key)) for key, _title in RESULT_COLUMNS]
+            sheet.write(_row_xml(index, values).encode("utf-8"))
+        sheet.write(b"</sheetData></worksheet>")
+        sheet.seek(0)
+        payload = {
+            "[Content_Types].xml": _content_types(),
+            "_rels/.rels": _root_rels(),
+            "xl/workbook.xml": _workbook(),
+            "xl/_rels/workbook.xml.rels": _workbook_rels(),
+            "xl/styles.xml": _styles(),
+            "xl/worksheets/sheet2.xml": _sheet_xml(note_rows),
+        }
+        with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as book:
+            for name, xml in payload.items():
+                book.writestr(name, xml)
+            with book.open("xl/worksheets/sheet1.xml", "w") as dest:
+                while True:
+                    chunk = sheet.read(256 * 1024)
+                    if not chunk:
+                        break
+                    dest.write(chunk)
+    finally:
+        sheet.close()
 
 
 def _sheet_xml(rows: list[list[str]]) -> str:

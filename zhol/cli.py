@@ -240,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
     demo.add_argument("--port", type=int, default=8765)
     demo.add_argument("--open", action="store_true", help="Open the demo page in the browser")
 
+    commands.add_parser(
+        "identity-report",
+        parents=[_now_parent()],
+        help="Print stored company links that are not a confirmed match. Does not change rows.",
+    )
+
     jobs = commands.add_parser("jobs", help="Call the collection API without opening the panel")
     jobs.add_argument("--api", default="http://127.0.0.1:18080")
     jobs.add_argument("--token", default="")
@@ -1020,6 +1026,8 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
     args = build_parser().parse_args(argv)
     if args.command == "demo":
         return cmd_demo(args)
+    if args.command == "identity-report":
+        return cmd_identity_report(args, factory)
     if args.command == "jobs":
         return cmd_jobs(args)
     if getattr(args, "now", None) is not None:
@@ -1085,6 +1093,17 @@ def main(argv: list[str] | None = None, *, gateway: Any = None, factory: Any = N
     if args.command == "bek-audit-plan":
         return cmd_bek_audit_plan(args, factory)
     print(now().isoformat())
+    return 0
+
+
+def cmd_identity_report(_args: argparse.Namespace, factory) -> int:
+    from zhol.agents.scout.identity_report import render
+    from zhol.db.base import get_session_factory
+
+    maker = factory or get_session_factory()
+    with maker() as session:
+        print(render(session))
+        session.rollback()
     return 0
 
 

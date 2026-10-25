@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 REQUIRED_TABLES = {
     "companies",
+    "company_match_keys",
     "company_platform_ids",
     "company_profiles",
     "card_snapshots",

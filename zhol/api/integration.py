@@ -9,7 +9,8 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.exception_handlers import http_exception_handler, request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from starlette.background import BackgroundTask
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
@@ -23,8 +24,7 @@ from zhol.integration.schema import (
     LIVE_EXPORT_NOTES,
     IntegrationError,
     error_body,
-    export_bytes,
-    iter_capped,
+    export_file,
     normalize_idempotency_key,
     parse_page,
 )
@@ -191,10 +191,9 @@ def get_export(
     format: Literal["xlsx", "csv", "json"] = Query(default="xlsx"),
     _auth: None = Depends(require_read),
     session: Session = Depends(_read_session),
-) -> Response:
-    payload, media, filename = export_bytes(format, iter_capped(live.iter_job_records(session, job_id)), notes=LIVE_EXPORT_NOTES)
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    return Response(payload, media_type=media, headers=headers)
+) -> FileResponse:
+    path, media, filename = export_file(format, live.iter_job_records(session, job_id), notes=LIVE_EXPORT_NOTES)
+    return FileResponse(path, media_type=media, filename=filename, background=BackgroundTask(path.unlink, missing_ok=True))
 
 
 @router.get("/companies")
@@ -228,8 +227,10 @@ def get_company_export(
     city: str | None = Query(default=None),
     _auth: None = Depends(require_read),
     session: Session = Depends(_read_session),
-) -> Response:
-    rows = live.iter_companies(session, q=q, platform=platform, city=city)
-    payload, media, filename = export_bytes(format, iter_capped(rows), notes=LIVE_EXPORT_NOTES)
-    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
-    return Response(payload, media_type=media, headers=headers)
+) -> FileResponse:
+    path, media, filename = export_file(
+        format,
+        live.iter_companies(session, q=q, platform=platform, city=city),
+        notes=LIVE_EXPORT_NOTES,
+    )
+    return FileResponse(path, media_type=media, filename=filename, background=BackgroundTask(path.unlink, missing_ok=True))

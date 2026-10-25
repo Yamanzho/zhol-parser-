@@ -16,7 +16,7 @@ from sqlalchemy.orm import sessionmaker
 from zhol.db.models import Company
 
 ROOT = Path(__file__).resolve().parents[1]
-HEAD = "e5a9b3c20f41"
+HEAD = "b6d2f4a81c30"
 TARGET = "zhol_restore_drill"
 
 

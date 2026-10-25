@@ -34,7 +34,10 @@ from zhol.db.base import get_session_factory
 
 def _readonly_begin(session: Session, _transaction: object, connection: object) -> None:
     if session.info.get("zhol_admin_readonly"):
-        connection.exec_driver_sql("SET TRANSACTION READ ONLY")  # type: ignore[attr-defined]
+        if session.info.get("zhol_repeatable_read"):
+            connection.exec_driver_sql("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")  # type: ignore[attr-defined]
+        else:
+            connection.exec_driver_sql("SET TRANSACTION READ ONLY")  # type: ignore[attr-defined]
 
 
 if not event.contains(Session, "after_begin", _readonly_begin):

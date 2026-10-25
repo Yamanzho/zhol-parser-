@@ -165,7 +165,7 @@ def test_downgrade_refuses_and_keeps_rows_when_a_company_has_no_2gis_id(migrated
         session.add(Order(company_id=fresh.id, kind="setup", amount_kzt=30000, stage="created"))
     with migrated_engine.connect() as conn:
         before = _fingerprint(conn)
-        assert _revision(conn) == "e5a9b3c20f41"
+        assert _revision(conn) == "b6d2f4a81c30"
         assert _index_present(conn) is True
     command.downgrade(alembic_config(postgres_url), "c3e7a1b84d02")
     with migrated_engine.connect() as conn:

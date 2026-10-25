@@ -87,6 +87,14 @@ def names_compatible(left: str | None, right: str | None) -> bool:
     return bool(tokens_left) and tokens_left == tokens_right
 
 
+def name_key(value: str | None) -> str | None:
+    """Stable lookup key. Equal keys are exactly the names `names_compatible` accepts."""
+    tokens = name_tokens(value)
+    if not tokens:
+        return None
+    return " ".join(sorted(tokens))
+
+
 def normalize_address(value: str) -> str:
     text = _letters(value).replace(".", " ")
     for pattern, replacement in _STREET:
