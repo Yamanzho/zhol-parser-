@@ -155,16 +155,20 @@ td {
 }
 
 .pill.verified,
-.pill.completed {
+.pill.completed,
+.pill.limit_reached {
   background: #d8f3dc;
 }
 
-.pill.completed_with_warnings {
+.pill.completed_with_warnings,
+.pill.partial,
+.pill.paused {
   background: #fff3bf;
 }
 
 .pill.interrupted,
 .pill.failed,
+.pill.blocked,
 .pill.dead {
   background: #f8d0d0;
 }
@@ -914,6 +918,29 @@ details.extra summary {
 .note {
   color: #3e4c59;
   font-size: 14px;
+}
+
+.simple h2 {
+  margin: 24px 0 8px;
+  font-size: 20px;
+}
+
+.job-details h2 {
+  margin-top: 0;
+}
+
+.warnings {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: #7a4b00;
+}
+
+.jobs-list tr.selected td {
+  background: #f0f4f8;
+}
+
+.jobs-list .bar {
+  max-width: 120px;
 }
 
 .company-list {

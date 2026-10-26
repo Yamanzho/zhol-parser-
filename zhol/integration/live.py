@@ -12,6 +12,8 @@ from sqlalchemy.orm.attributes import flag_modified
 from zhol.agents.scout.batch import progress_counts
 from zhol.agents.scout.browser_2gis import BrowserCollectionRefused, build_browser_plans
 from zhol.agents.scout.browser_google import build_browser_plans as build_google_plans
+from zhol.agents.scout.collection_outcome import collection_mode, collection_outcome
+from zhol.agents.scout.run_timing import public_timings
 from zhol.agents.scout.browser_yandex import build_browser_plans as build_yandex_plans
 from zhol.agents.scout.catalog import BatchError
 from zhol.agents.scout.live_2gis import CatalogError
@@ -142,6 +144,25 @@ def job_view(session: Session, job_id: int) -> dict[str, Any]:
     batch = _batch_for(session, payload)
     status, message, error, collected, progress = _status(session, job, payload, batch)
     platform = _platform_of(payload)
+    limit = payload.get("limit") if payload.get("limit") is not None else (None if batch is None else batch.item_limit)
+    stored: dict[str, Any] = {}
+    if batch is None:
+        result = collection_outcome(status, {}, collected=0, limit=None)
+        mode = None
+        timings = None
+    else:
+        stored = batch.progress if isinstance(batch.progress, dict) else {}
+        counts = progress_counts(session, batch.id)
+        result = collection_outcome(
+            batch.status,
+            stored,
+            collected=collected,
+            limit=batch.item_limit or (int(limit) if isinstance(limit, int) else None),
+            rejected=int(counts.get("failed") or 0) + int(counts.get("blocked") or 0),
+        )
+        mode = collection_mode(batch.source_mode, stored)
+        timings = public_timings(stored.get("timings"))
+    finished = None if batch is None else batch.finished_at
     return job_document(
         {
             "id": job.id,
@@ -149,15 +170,32 @@ def job_view(session: Session, job_id: int) -> dict[str, Any]:
             "platform": platform,
             "city": payload.get("city"),
             "query": payload.get("category"),
-            "limit": payload.get("limit") if payload.get("limit") is not None else (None if batch is None else batch.item_limit),
+            "limit": limit,
             "collected": collected,
             "progress": progress,
             "message": message,
             "error": error or (job.last_error if status == "failed" else None),
             "duplicate": False,
             "batch_id": None if batch is None else batch.id,
+            "result": result,
+            "collection_mode": mode,
+            "timings": timings,
+            "created_at": _iso(job.created_at),
+            "started_at": None if batch is None else _iso(batch.created_at),
+            "finished_at": _iso(finished),
+            "duration_seconds": _seconds(job.created_at, finished),
         }
     )
+
+
+def _iso(value: Any) -> str | None:
+    return None if value is None else value.isoformat()
+
+
+def _seconds(started: Any, finished: Any) -> float | None:
+    if started is None or finished is None:
+        return None
+    return round(max(0.0, (finished - started).total_seconds()), 1)
 
 
 def control_job(session: Session, job_id: int, action: str) -> dict[str, Any]:

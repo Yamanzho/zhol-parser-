@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
+from zhol.agents.scout.collection_outcome import QUERY_SCOPE, collection_outcome
 from zhol.demo.catalog import CATALOG, CITIES
 from zhol.integration.schema import (
     COLLECTION_LIMIT_DEFAULT,
@@ -32,6 +33,12 @@ from zhol.integration.schema import (
 ROOT = Path(__file__).resolve().parents[2]
 STATIC_DIR = ROOT / "demo" / "static"
 LOOPBACK = {"127.0.0.1", "::1"}
+DEMO_MODE = {
+    "code": "demo",
+    "label": "Демонстрация: учебные компании, сайты площадок не открываются",
+    "scope": "query",
+    "scope_label": QUERY_SCOPE,
+}
 _OPENAPI = {
     "openapi": "3.1.0",
     "info": {"title": "Zhol demo", "version": "v1"},
@@ -272,6 +279,7 @@ class DemoStore:
         collected = len(job["found"])
         limit = int(job["limit"])
         progress = 1.0 if job["status"] == "completed" else (None if not limit else round(collected / limit, 4))
+        ended = {"stop_reason": "confirmed_end"} if job["status"] == "completed" and collected < limit else {}
         return job_document(
             {
                 "id": job["id"],
@@ -286,6 +294,8 @@ class DemoStore:
                 "error": job["error"],
                 "duplicate": False,
                 "batch_id": None,
+                "result": collection_outcome(job["status"], ended, collected=collected, limit=limit),
+                "collection_mode": DEMO_MODE,
             }
         )
 

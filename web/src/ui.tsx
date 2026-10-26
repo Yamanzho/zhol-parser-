@@ -42,8 +42,9 @@ export function useGet<T>(path: string | null): { data?: T; error?: string; load
 export function Banner(): ReactNode {
   return (
     <div className="banner">
-      <strong>Офлайн-симуляция, не реальная публикация.</strong> Действия остаются в локальной базе. Симуляция отправки не
-      публикует карточку на 2ГИС, Яндекс или Google. Живой сбор города, живые кабинеты и Бек не подключены.
+      <strong>Офлайн-симуляция публикации, не реальная публикация.</strong> Правки и отправка карточек остаются в локальной базе
+      и не публикуются на 2ГИС, Яндекс или Google. Живые кабинеты площадок и Бек не подключены. Сбор компаний с площадок к
+      этой симуляции не относится: его режим показан на странице сбора.
     </div>
   );
 }
@@ -191,5 +192,59 @@ export function Pager(props: { offset: number; total: number; limit: number; onC
         {props.offset + 1}-{Math.min(props.offset + props.limit, props.total)} из {props.total}
       </span>
     </p>
+  );
+}
+
+export type Timings = {
+  persistence_scope: string;
+  runs?: number;
+  run_ms?: number;
+  browser_start_ms?: number;
+  link_discovery_ms?: number;
+  card_read_ms?: number;
+  card_pacing_ms?: number;
+  verification_wait_ms?: number;
+  persistence_ms?: number;
+  cards_opened?: number;
+  cards_persisted?: number;
+  average_card_read_ms?: number;
+  average_persistence_ms?: number;
+};
+
+export function duration(ms: number | null | undefined): string {
+  if (typeof ms !== "number") return "нет данных";
+  if (ms < 1000) return `${Math.round(ms)} мс`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1).replace(".", ",")} с`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes} мин ${Math.round(seconds - minutes * 60)} с`;
+}
+
+export function TimingList(props: { timings?: Timings | null }): ReactNode {
+  const timings = props.timings;
+  if (!timings) return null;
+  if (timings.persistence_scope !== "commit") {
+    return <p className="note">Время этапов для этого сбора не измерялось. Прежний замер записи в базу был неполным и не показывается.</p>;
+  }
+  const rows: [string, string][] = [
+    ["Весь прогон сборщика", duration(timings.run_ms)],
+    ["Запуск браузера", duration(timings.browser_start_ms)],
+  ];
+  if (typeof timings.link_discovery_ms === "number") rows.push(["Поиск ссылок в выдаче", duration(timings.link_discovery_ms)]);
+  if (typeof timings.card_read_ms === "number") rows.push(["Открытие и чтение карточек", duration(timings.card_read_ms)]);
+  if (typeof timings.average_card_read_ms === "number") rows.push(["В среднем на карточку", duration(timings.average_card_read_ms)]);
+  if (typeof timings.card_pacing_ms === "number") rows.push(["Паузы между карточками", duration(timings.card_pacing_ms)]);
+  if (timings.verification_wait_ms) rows.push(["Ожидание проверки в браузере", duration(timings.verification_wait_ms)]);
+  rows.push(["Запись в базу, включая фиксацию", duration(timings.persistence_ms)]);
+  if (typeof timings.average_persistence_ms === "number") rows.push(["Запись одной карточки в среднем", duration(timings.average_persistence_ms)]);
+  return (
+    <dl className="facts">
+      {rows.map(([label, value]) => (
+        <div className="fact" key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

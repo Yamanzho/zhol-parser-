@@ -48,7 +48,9 @@ from zhol.agents.scout.selenium_collector import (
     _metrics_of,
     _note_browser_restart,
     _retryable_ids,
+    store_run_timings,
 )
+from zhol.agents.scout.run_timing import PersistTimer, RunClock, begin_timings
 from zhol.browser.discovery.normalize import clean_address, verified_instagram, verified_website, verified_whatsapp
 from zhol.browser.discovery.types import RunControl
 from zhol.browser.maps.visible import parse_card, place_id
@@ -721,19 +723,34 @@ def _google_place_ready(place: MapPlace) -> bool:
     return google_place_ready(place.name, place.url, place.external_id)
 
 
-def _commit_place(factory: sessionmaker[Session], batch_id: int, place: MapPlace) -> str:
-    started = time.perf_counter()
-    for attempt in range(2):
-        try:
-            with factory() as session, session.begin():
-                return _commit_place_locked(session, batch_id, place, started)
-        except IntegrityError:
-            if attempt == 1:
-                raise
-    raise RuntimeError("company commit did not finish")
+def _commit_place(
+    factory: sessionmaker[Session],
+    batch_id: int,
+    place: MapPlace,
+    timer: PersistTimer | None = None,
+) -> str:
+    def commit() -> str:
+        for attempt in range(2):
+            try:
+                with factory() as session, session.begin():
+                    kind = _commit_place_locked(session, batch_id, place, timer)
+                return kind
+            except IntegrityError:
+                if timer is not None:
+                    timer.rolled_back()
+                if attempt == 1:
+                    raise
+        raise RuntimeError("company commit did not finish")
+
+    return commit() if timer is None else timer.timed(commit)
 
 
-def _commit_place_locked(session: Session, batch_id: int, place: MapPlace, started: float) -> str:
+def _commit_place_locked(
+    session: Session,
+    batch_id: int,
+    place: MapPlace,
+    timer: PersistTimer | None = None,
+) -> str:
     batch = _lock_batch(session, batch_id)
     if batch is None:
         return "duplicate"
@@ -755,15 +772,14 @@ def _commit_place_locked(session: Session, batch_id: int, place: MapPlace, start
         )
     )
     metrics = _metrics_of(progress)
-    elapsed = (time.perf_counter() - started) * 1000
-    metrics["persistence_ms_total"] = float(metrics["persistence_ms_total"]) + elapsed
-    metrics["persistence_samples"] = int(metrics["persistence_samples"]) + 1
     if item is not None and item.status == "completed":
         seen.add(place.external_id)
         progress["seen_ids"] = sorted(seen)
         progress["hits"] = len(seen)
         metrics["duplicate_companies"] = int(metrics["duplicate_companies"]) + 1
         metrics["companies_processed"] = int(metrics["companies_processed"]) + 1
+        if timer is not None:
+            timer.apply(metrics)
         _finish_metrics(metrics)
         progress["metrics"] = metrics
         _assign_progress(batch, progress)
@@ -845,6 +861,8 @@ def _commit_place_locked(session: Session, batch_id: int, place: MapPlace, start
     metrics["companies_committed"] = int(metrics["companies_committed"]) + 1
     if wrote:
         metrics["snapshots_written"] = int(metrics["snapshots_written"]) + 1
+    if timer is not None:
+        timer.apply(metrics)
     _finish_metrics(metrics)
     progress["metrics"] = metrics
     _assign_progress(batch, progress)
@@ -1331,9 +1349,16 @@ def run_maps_batch(
             max_wait_seconds=wait_seconds,
         )
 
+    clock = RunClock()
     try:
+        browser_started = time.perf_counter()
         driver = driver_factory() if driver_factory is not None else _start_local_chrome(platform)
+        clock.browser_started(browser_started)
         _mark(factory, batch_id, "running", finish=False)
+        state = _progress(factory, batch_id)
+        state["browser_source"] = "localhost" if local_base_url() else _source_mode(platform)
+        begin_timings(state)
+        _save(factory, batch_id, state)
         checkpoint = state.get("discovery_checkpoint")
         from zhol.agents.scout.localities import google_search_text
 
@@ -1446,7 +1471,8 @@ def run_maps_batch(
             shot = _capture(driver, artifact, external_id)
             if shot:
                 place = replace(place, screenshot_path=shot)
-            _commit_place(factory, batch_id, place)
+            clock.card_opened()
+            _commit_place(factory, batch_id, place, clock.persist)
             seen.add(external_id)
         _finish_discovered(
             factory,
@@ -1493,6 +1519,8 @@ def run_maps_batch(
         raise
     finally:
         _close_driver(driver)
+        if driver is not None:
+            store_run_timings(factory, batch_id, clock)
 
 
 def _start_local_chrome(platform: str) -> Any:

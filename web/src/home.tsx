@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { api, apiDownload, apiSend, type Row } from "./api";
+import { duration, TimingList, type Timings } from "./ui";
 
 export type Platform = { id: string; label: string; available: boolean; note: string; cities: string[] };
 export type Meta = {
@@ -24,6 +25,22 @@ type Job = {
   error?: string | null;
   controls?: { pause?: boolean; resume?: boolean; stop?: boolean };
   results_url?: string;
+  batch_id?: number | null;
+  result?: JobResult | null;
+  collection_mode?: { code: string; label: string; scope_label?: string } | null;
+  timings?: Timings | null;
+  created_at?: string | null;
+  finished_at?: string | null;
+  duration_seconds?: number | null;
+};
+
+type JobResult = {
+  code: string;
+  label: string;
+  note?: string;
+  limit_reached?: boolean;
+  search_exhausted?: boolean;
+  warnings?: string[];
 };
 
 type Company = {
@@ -56,11 +73,21 @@ const STATUS: Record<string, string> = {
   awaiting_manual_verification: "Ждёт проверку в браузере",
 };
 
+const ACTIVE = ["queued", "running", "paused", "awaiting_manual_verification"];
+
 function text(value: string | null | undefined): string {
   return value || "Нет данных";
 }
 
-export function Collection(): ReactNode {
+function jobLabel(job: Job): string {
+  return job.result?.label || STATUS[job.status] || job.status;
+}
+
+function when(value: string | null | undefined): string {
+  return value ? new Date(value).toLocaleString("ru-RU") : "нет данных";
+}
+
+export function Collection(props: { jobId?: string }): ReactNode {
   const meta = useContext(MetaContext);
   const platforms = meta?.platforms || [];
   const rule = meta?.limit || { min: 1, max: 500, default: 20 };
@@ -68,11 +95,15 @@ export function Collection(): ReactNode {
   const [city, setCity] = useState("");
   const [query, setQuery] = useState("салон красоты");
   const [limit, setLimit] = useState(String(rule.default));
-  const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [listError, setListError] = useState("");
+  const [reload, setReload] = useState(0);
   const selected = platforms.find((item) => item.id === platform);
   const cities = selected?.cities || [];
+  const openId = props.jobId && /^\d+$/.test(props.jobId) ? Number(props.jobId) : null;
+  const anyActive = jobs.some((item) => ACTIVE.includes(item.status));
 
   useEffect(() => {
     if (!platforms.length || platform) return;
@@ -83,12 +114,26 @@ export function Collection(): ReactNode {
   }, [platforms, platform, rule.default]);
 
   useEffect(() => {
-    if (!job || !["queued", "running", "paused", "awaiting_manual_verification"].includes(job.status)) return;
-    const timer = window.setTimeout(() => {
-      void api<Job>(`/api/v1/jobs/${job.id}`).then(setJob).catch((reason: Error) => setError(reason.message));
-    }, 800);
+    let cancel = false;
+    void api<Page<Job>>("/api/v1/jobs?limit=20&offset=0")
+      .then((body) => {
+        if (cancel) return;
+        setJobs(body.items || []);
+        setListError("");
+      })
+      .catch((reason: Error) => {
+        if (!cancel) setListError(reason.message);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [reload]);
+
+  useEffect(() => {
+    if (!anyActive) return;
+    const timer = window.setTimeout(() => setReload((value) => value + 1), 3000);
     return () => window.clearTimeout(timer);
-  }, [job]);
+  }, [anyActive, jobs]);
 
   async function start(): Promise<void> {
     setError("");
@@ -100,21 +145,12 @@ export function Collection(): ReactNode {
         query: query.trim(),
         limit: Number(limit),
       });
-      setJob(created);
+      window.location.hash = `#/collect/${created.id}`;
+      setReload((value) => value + 1);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Не удалось начать сбор.");
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function act(action: "pause" | "resume" | "stop"): Promise<void> {
-    if (!job) return;
-    setError("");
-    try {
-      setJob(await apiSend<Job>(`/api/v1/jobs/${job.id}/${action}`));
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Действие не выполнено.");
     }
   }
 
@@ -168,39 +204,211 @@ export function Collection(): ReactNode {
         </button>
       </div>
       {error && <p className="error">{error}</p>}
-      {job && (
-        <div className="status-card">
-          <p>
-            <strong>{STATUS[job.status] || job.status}</strong>
-            {job.message ? `. ${job.message}` : ""}
-          </p>
-          <p>
-            Собрано компаний: {job.collected ?? 0}
-            {job.limit ? ` из ${job.limit}` : ""}
-          </p>
-          {typeof job.progress === "number" && (
-            <div className="bar" aria-label="Прогресс">
-              <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
-            </div>
-          )}
-          {job.error && <p className="error">{job.error}</p>}
-          <div className="actions">
-            <button type="button" className="secondary" disabled={!job.controls?.pause} onClick={() => void act("pause")}>
-              Пауза
-            </button>
-            <button type="button" className="secondary" disabled={!job.controls?.resume} onClick={() => void act("resume")}>
-              Продолжить
-            </button>
-            <button type="button" className="secondary" disabled={!job.controls?.stop} onClick={() => void act("stop")}>
-              Остановить
-            </button>
-            <a className="button secondary" href="#/companies">
-              К компаниям
-            </a>
-          </div>
-        </div>
+      {openId !== null && <JobDetails id={openId} onChange={() => setReload((value) => value + 1)} />}
+      <h2>Последние задания</h2>
+      <p className="note">Здесь видны все задания сбора, в том числе созданные через API.</p>
+      <div className="actions">
+        <button type="button" className="secondary" onClick={() => setReload((value) => value + 1)}>
+          Обновить список
+        </button>
+      </div>
+      {listError && <p className="error">{listError}</p>}
+      {!listError && !jobs.length && <p className="note">Заданий сбора пока нет.</p>}
+      {jobs.length > 0 && (
+        <table className="company-list jobs-list">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Площадка, город, запрос</th>
+              <th>Статус</th>
+              <th>Собрано</th>
+              <th>Замечания</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {jobs.map((item) => (
+              <tr key={item.id} className={item.id === openId ? "selected" : ""}>
+                <td>{item.id}</td>
+                <td>
+                  {text(item.platform_label)}, {text(item.city)}, «{text(item.query)}»
+                </td>
+                <td>
+                  <span className={`pill ${item.result?.code || item.status}`}>{jobLabel(item)}</span>
+                  {typeof item.progress === "number" && ACTIVE.includes(item.status) && (
+                    <div className="bar" aria-label="Прогресс">
+                      <span style={{ width: `${Math.round(item.progress * 100)}%` }} />
+                    </div>
+                  )}
+                </td>
+                <td>
+                  {item.collected ?? 0}
+                  {item.limit ? ` из ${item.limit}` : ""}
+                </td>
+                <td>{item.error ? "Ошибка" : item.result?.warnings?.length ? item.result.warnings.join(" ") : "Нет"}</td>
+                <td>
+                  <a href={`#/collect/${item.id}`}>Открыть</a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
+  );
+}
+
+function JobDetails(props: { id: number; onChange: () => void }): ReactNode {
+  const [job, setJob] = useState<Job | null>(null);
+  const [error, setError] = useState("");
+  const [results, setResults] = useState<Page<Company> | null>(null);
+  const [showResults, setShowResults] = useState(false);
+  const { id, onChange } = props;
+
+  useEffect(() => {
+    let cancel = false;
+    setJob(null);
+    setResults(null);
+    setShowResults(false);
+    void api<Job>(`/api/v1/jobs/${id}`)
+      .then((body) => {
+        if (!cancel) setJob(body);
+      })
+      .catch((reason: Error) => {
+        if (!cancel) setError(reason.message);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (!job || !ACTIVE.includes(job.status)) return;
+    const timer = window.setTimeout(() => {
+      void api<Job>(`/api/v1/jobs/${job.id}`).then(setJob).catch((reason: Error) => setError(reason.message));
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [job]);
+
+  useEffect(() => {
+    if (!showResults || !job?.results_url) return;
+    let cancel = false;
+    void api<Page<Company>>(`${job.results_url}?limit=50&offset=0`)
+      .then((body) => {
+        if (!cancel) setResults(body);
+      })
+      .catch((reason: Error) => {
+        if (!cancel) setError(reason.message);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [showResults, job?.results_url, job?.collected]);
+
+  async function act(action: "pause" | "resume" | "stop"): Promise<void> {
+    if (!job) return;
+    if (action === "stop" && !window.confirm("Остановить сбор? Уже собранные компании сохранятся.")) return;
+    setError("");
+    try {
+      setJob(await apiSend<Job>(`/api/v1/jobs/${job.id}/${action}`));
+      onChange();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Действие не выполнено.");
+    }
+  }
+
+  if (!job) {
+    return <div className="status-card">{error ? <p className="error">{error}</p> : <p>Загружаем задание {id}.</p>}</div>;
+  }
+  const warnings = job.result?.warnings || [];
+  return (
+    <div className="status-card job-details">
+      <h2>
+        Задание {job.id}: {text(job.platform_label)}, {text(job.city)}, «{text(job.query)}»
+      </h2>
+      <p>
+        <strong>{jobLabel(job)}</strong>
+        {job.message ? `. ${job.message}` : ""}
+      </p>
+      {job.result?.note && <p>{job.result.note}</p>}
+      {job.collection_mode && (
+        <p className="note">
+          Источник: {job.collection_mode.label}. {job.collection_mode.scope_label || ""}
+        </p>
+      )}
+      <p>
+        Собрано компаний: {job.collected ?? 0}
+        {job.limit ? ` из ${job.limit}` : ""}
+      </p>
+      {typeof job.progress === "number" && (
+        <div className="bar" aria-label="Прогресс">
+          <span style={{ width: `${Math.round(job.progress * 100)}%` }} />
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <ul className="warnings">
+          {warnings.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+      {job.error && <p className="error">{job.error}</p>}
+      <p className="note">
+        Создано: {when(job.created_at)}. Завершено: {job.finished_at ? when(job.finished_at) : "ещё нет"}.
+        {typeof job.duration_seconds === "number" ? ` Длительность с постановки в очередь: ${duration(job.duration_seconds * 1000)}.` : ""}
+      </p>
+      <TimingList timings={job.timings} />
+      {error && <p className="error">{error}</p>}
+      <div className="actions">
+        <button type="button" className="secondary" disabled={!job.controls?.pause} onClick={() => void act("pause")}>
+          Пауза
+        </button>
+        <button type="button" className="secondary" disabled={!job.controls?.resume} onClick={() => void act("resume")}>
+          Продолжить
+        </button>
+        <button type="button" className="secondary" disabled={!job.controls?.stop} onClick={() => void act("stop")}>
+          Остановить
+        </button>
+        <button type="button" className="secondary" onClick={() => setShowResults((value) => !value)}>
+          {showResults ? "Скрыть компании" : "Собранные компании"}
+        </button>
+        {job.batch_id ? (
+          <a className="button secondary" href={`#/scout/${job.batch_id}`}>
+            Подробно в истории
+          </a>
+        ) : null}
+        <a className="button secondary" href="#/export">
+          Выгрузка
+        </a>
+      </div>
+      {showResults && results && (
+        <>
+          <p className="note">
+            Показано {results.items?.length || 0} из {results.total ?? 0}.
+          </p>
+          <table className="company-list">
+            <thead>
+              <tr>
+                <th>Название</th>
+                <th>Телефон</th>
+                <th>Адрес</th>
+                <th>Категория</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(results.items || []).map((item) => (
+                <tr key={item.id}>
+                  <td>{text(item.name)}</td>
+                  <td>{text(item.phone)}</td>
+                  <td>{text(item.address)}</td>
+                  <td>{text(item.category)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
   );
 }
 

@@ -169,6 +169,13 @@ def job_document(body: dict) -> dict:
         "controls": controls_for(str(body["status"])),
         "results_url": f"/api/v1/jobs/{job_id}/results",
         "export_url": f"/api/v1/jobs/{job_id}/export",
+        "result": body.get("result"),
+        "collection_mode": body.get("collection_mode"),
+        "timings": body.get("timings"),
+        "created_at": body.get("created_at"),
+        "started_at": body.get("started_at"),
+        "finished_at": body.get("finished_at"),
+        "duration_seconds": body.get("duration_seconds"),
     }
 
 

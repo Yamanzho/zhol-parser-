@@ -12,6 +12,8 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from zhol.agents.scout.batch import progress_counts
+from zhol.agents.scout.collection_outcome import collection_mode, collection_outcome, stop_reason_code
+from zhol.agents.scout.run_timing import public_timings
 from zhol.api.company_view import CONTACT_HINT, company_cards, identity_view, list_item, public_http
 from zhol.audit.bek import PROMPT as BEK_PROMPT
 from zhol.audit.bek import read_company_plan
@@ -648,33 +650,38 @@ def _freshness(session: Session, company_ids: list[int]) -> dict[int, dict[str, 
     }
 
 
-def collection_display_status(status: str, stored: dict[str, Any], card_states: dict[str, int]) -> str:
-    """Map a stored batch onto the panel status. Partial success is not full success."""
-    if status in {"failed", "dead"}:
-        return "failed"
-    if status == "stopped":
-        return "stopped"
-    if status == "interrupted":
-        return "interrupted"
-    if status != "completed":
-        return status
-    metrics = stored.get("metrics") if isinstance(stored.get("metrics"), dict) else {}
-    failed_records = metrics.get("failed_records")
-    failed_n = failed_records if isinstance(failed_records, int) and not isinstance(failed_records, bool) else 0
+def collection_result(
+    status: str,
+    stored: dict[str, Any],
+    card_states: dict[str, int],
+    *,
+    collected: int = 0,
+    limit: int | None = None,
+) -> dict[str, Any]:
     rejected = card_states.get("rejected", 0)
-    rejected_n = rejected if isinstance(rejected, int) and not isinstance(rejected, bool) else 0
-    reason = stored.get("stop_reason")
-    feed_open = stored.get("link_collection_complete") is False and reason not in {"limit", "confirmed_end"}
-    if failed_n > 0 or rejected_n > 0 or feed_open:
-        return "completed_with_warnings"
-    return "completed"
+    return collection_outcome(
+        status,
+        stored,
+        collected=collected,
+        limit=limit,
+        rejected=rejected if isinstance(rejected, int) and not isinstance(rejected, bool) else 0,
+    )
+
+
+def collection_display_status(
+    status: str,
+    stored: dict[str, Any],
+    card_states: dict[str, int],
+    *,
+    collected: int = 0,
+    limit: int | None = None,
+) -> str:
+    """Panel status. Partial success is not full success, and the requested limit is not an error."""
+    return str(collection_result(status, stored, card_states, collected=collected, limit=limit)["code"])
 
 
 def _public_stop_reason(stored: dict[str, Any]) -> str | None:
-    reason = stored.get("stop_reason")
-    if reason in {"confirmed_end", "limit", "stall", "stopped"}:
-        return str(reason)
-    return None
+    return stop_reason_code(stored.get("stop_reason"))
 
 
 def _public_collection_plan(stored: dict[str, Any], row: CollectionBatch) -> dict[str, Any] | None:
@@ -708,6 +715,7 @@ def _batch(session: Session, row: CollectionBatch) -> dict[str, Any]:
     stored = row.progress if isinstance(row.progress, dict) else {}
     states = _card_states(session, row.id)
     job_id = stored.get("admin_job_id")
+    result = collection_result(row.status, stored, states, collected=int(counts.get("completed") or 0), limit=row.item_limit)
     return envelope(
         id=row.id,
         job_id=job_id if isinstance(job_id, int) else None,
@@ -730,10 +738,20 @@ def _batch(session: Session, row: CollectionBatch) -> dict[str, Any]:
         interruption=_public_interruption(stored),
         retry_pending=stored.get("retry_pending") is True,
         manual_verification=_public_verification(stored),
-        display_status=collection_display_status(row.status, stored, states),
+        display_status=result["code"],
+        result=result,
+        collection_mode=collection_mode(row.source_mode, stored),
+        timings=public_timings(stored.get("timings")),
+        duration_seconds=_duration_seconds(row.created_at, row.finished_at),
         stop_reason=_public_stop_reason(stored),
         collection_plan=_public_collection_plan(stored, row),
     )
+
+
+def _duration_seconds(started: Any, finished: Any) -> float | None:
+    if started is None or finished is None:
+        return None
+    return round(max(0.0, (finished - started).total_seconds()), 1)
 
 
 _LOCAL_PATH_KEYS = frozenset(

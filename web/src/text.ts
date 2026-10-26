@@ -26,6 +26,8 @@ const WORD: Record<string, string> = {
   stopped: "остановлен",
   completed: "завершен",
   completed_with_warnings: "завершен с предупреждениями",
+  limit_reached: "достигнут лимит",
+  partial: "частичный результат",
   failed: "ошибка",
   interrupted: "прерван",
   awaiting_manual_verification: "ждет проверку в браузере",

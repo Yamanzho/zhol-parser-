@@ -3,11 +3,12 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Row } from "./api";
 import { api, apiUploadForm } from "./api";
 import {
-  Banner,
   Feedback,
   Pill,
   StateView,
   Table,
+  TimingList,
+  type Timings,
   cell,
   downloadAction,
   downloadPlatformWorkbook,
@@ -65,6 +66,9 @@ export function collectionStatus(value: unknown): string {
     done: "Завершён",
     completed: "Завершён",
     completed_with_warnings: "Завершён с предупреждениями",
+    limit_reached: "Достигнут лимит",
+    partial: "Частичный результат",
+    blocked: "Нужна проверка или доступ ограничен",
     stopped: "Остановлен",
     failed: "Ошибка",
     dead: "Ошибка",
@@ -248,7 +252,6 @@ export function Scout(): ReactNode {
   return (
     <section>
       <h1>Сбор компаний</h1>
-      <Banner />
       <p className="hint">Выберите города, категории и источники. Кнопка «Начать сбор» ставит задачи в очередь и сама площадку не открывает.</p>
       <StateView loading={setup.loading} error={setup.error} />
       {options && options.ready === false ? <p className="error">{options.error || "Сбор из формы недоступен."}</p> : null}
@@ -800,6 +803,7 @@ export function BatchSummary(props: { batch: Row }): ReactNode {
         Статус: {collectionStatus(props.batch.display_status || props.batch.status)}. Текущий запрос: {currentQuery(props.batch)}. Город:{" "}
         {cell(props.batch.city)}. Источник: {platformLine(props.batch.platforms)}.
       </p>
+      <ResultNote batch={props.batch} />
       {savedRunNote(props.batch.recorded_source_mode)}
       {screenshotNote(props.batch)}
       {props.batch.metrics ? null : total !== null && total > 0 ? <p>Обработано {done} из {total}.</p> : <p>Доля выполнения пока не считается: список компаний еще не записан.</p>}
@@ -815,6 +819,32 @@ export function BatchSummary(props: { batch: Row }): ReactNode {
         <a href="#/companies">Открыть компании</a>
       </p>
     </div>
+  );
+}
+
+function ResultNote(props: { batch: Row }): ReactNode {
+  const raw = props.batch.result;
+  const result = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Row) : null;
+  const rawMode = props.batch.collection_mode;
+  const mode = rawMode && typeof rawMode === "object" && !Array.isArray(rawMode) ? (rawMode as Row) : null;
+  const warnings = Array.isArray(result?.warnings) ? (result?.warnings as unknown[]).map(String) : [];
+  const shownMode = mode && mode.code !== "saved" && mode.code !== "fixture";
+  return (
+    <>
+      {typeof result?.note === "string" && result.note ? <p>{result.note}</p> : null}
+      {warnings.length > 0 ? (
+        <ul className="warnings">
+          {warnings.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : null}
+      {shownMode ? (
+        <p className="hint">
+          Режим: {cell(mode.label)}. {typeof mode.scope_label === "string" ? mode.scope_label : ""}
+        </p>
+      ) : null}
+    </>
   );
 }
 
@@ -894,12 +924,18 @@ const METRIC_LABELS: Array<{ key: string; label: string }> = [
   { key: "duplicate_companies", label: "Уже были в базе" },
   { key: "snapshots_written", label: "Новые снимки" },
   { key: "failed_records", label: "Ошибки карточек" },
-  { key: "average_persistence_ms", label: "Среднее время сохранения" },
+  { key: "average_persistence_ms", label: "Запись карточки в базу, в среднем" },
   { key: "browser_restarts", label: "Перезапуски браузера" },
   { key: "retries", label: "Повторы задания" },
 ];
 
-function metricText(metrics: Row, key: string): string {
+function fullTimings(batch: Row): boolean {
+  const timings = batch.timings;
+  return !!timings && typeof timings === "object" && !Array.isArray(timings) && (timings as Row).persistence_scope === "commit";
+}
+
+function metricText(metrics: Row, key: string, batch: Row): string {
+  if (key === "average_persistence_ms" && !fullTimings(batch)) return "измерено не полностью";
   if (!Object.prototype.hasOwnProperty.call(metrics, key)) return "еще нет";
   const value = metrics[key];
   if (typeof value !== "number") return "еще нет";
@@ -927,13 +963,19 @@ export function CollectionMetrics(props: { batch: Row | null }): ReactNode {
           {METRIC_LABELS.map((item) => (
             <div key={item.key}>
               <dt>{item.label}</dt>
-              <dd>{metricText(metricRow, item.key)}</dd>
+              <dd>{metricText(metricRow, item.key, batch)}</dd>
             </div>
           ))}
         </dl>
       ) : (
         <p>Счетчики браузерного сбора еще не записаны.</p>
       )}
+      {batch.timings ? (
+        <>
+          <h4>Время этапов</h4>
+          <TimingList timings={batch.timings as Timings} />
+        </>
+      ) : null}
       {stateRow ? (
         <>
           <h4>Состояние карточек</h4>
@@ -1066,8 +1108,8 @@ function isOpen(job: RunJob): boolean {
 }
 
 function isFinished(job: RunJob): boolean {
-  const status = shownStatus(job);
-  return status === "completed" || status === "completed_with_warnings" || status === "done" || status === "stopped" || status === "failed" || status === "dead";
+  const status = String(job.batch?.status || job.status || "");
+  return status === "completed" || status === "done" || status === "stopped" || status === "failed" || status === "dead";
 }
 
 function overall(jobs: RunJob[]): string {
@@ -1075,12 +1117,14 @@ function overall(jobs: RunJob[]): string {
   if (statuses.some((status) => status === "running")) return "running";
   if (statuses.some((status) => status === "queued")) return "queued";
   if (statuses.some((status) => status === "paused")) return "paused";
-  if (statuses.some((status) => status === "awaiting_manual_verification")) return "awaiting_manual_verification";
+  if (statuses.some((status) => status === "awaiting_manual_verification" || status === "blocked")) return "blocked";
   if (statuses.some((status) => status === "interrupted")) return "interrupted";
   if (statuses.some((status) => status === "failed" || status === "dead")) return "failed";
   if (statuses.some((status) => status === "stopped")) return "stopped";
-  if (statuses.some((status) => status === "completed_with_warnings")) return "completed_with_warnings";
-  if (statuses.every((status) => status === "completed" || status === "done")) return "completed";
+  if (statuses.some((status) => status === "partial" || status === "completed_with_warnings")) return "partial";
+  if (statuses.every((status) => status === "completed" || status === "done" || status === "limit_reached")) {
+    return statuses.some((status) => status === "limit_reached") ? "limit_reached" : "completed";
+  }
   return statuses[0] || "";
 }
 

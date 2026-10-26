@@ -291,6 +291,23 @@ def test_google_confirmed_end_and_limit_are_distinct(factory, tmp_path: Path) ->
         assert batch.progress["stop_reason"] == "limit"
         assert batch.progress["link_collection_complete"] is False
         assert db.query(Company).count() == 1
+        timings = batch.progress["timings"]
+        metrics = batch.progress["metrics"]
+    assert timings["persistence_scope"] == "commit"
+    assert timings["cards_persisted"] == 1
+    assert metrics["persistence_samples"] == 1
+    assert metrics["persistence_ms_total"] == pytest.approx(timings["persistence_ms"], abs=0.01)
+    assert "link_discovery_ms" not in timings
+    with TestClient(app) as client:
+        ended_view = client.get(f"/api/v1/admin/scout/batches/{end_id}", headers=HEADERS).json()
+        limit_view = client.get(f"/api/v1/admin/scout/batches/{limit_id}", headers=HEADERS).json()
+    assert ended_view["display_status"] == "completed"
+    assert ended_view["result"]["search_exhausted"] is True
+    assert limit_view["display_status"] == "limit_reached"
+    assert limit_view["result"]["search_exhausted"] is False
+    assert limit_view["result"]["warnings"] == []
+    assert limit_view["collection_mode"]["code"] == "local"
+    assert limit_view["timings"]["average_persistence_ms"] >= 0
 
 
 def test_headless_captcha_is_unavailable_and_does_not_resume(factory, tmp_path: Path) -> None:
@@ -417,7 +434,9 @@ def test_partial_batch_is_not_labeled_completed(factory) -> None:
     assert body.status_code == 200
     payload = body.json()
     assert payload["status"] == "completed"
-    assert payload["display_status"] == "completed_with_warnings"
+    assert payload["display_status"] == "partial"
+    assert payload["result"]["label"] == "Частичный результат"
+    assert payload["result"]["warnings"] == ["Не прочитано карточек: 1."]
     assert payload["card_states"]["rejected"] == 1
     assert collection_display_status("stopped", {}, {}) == "stopped"
     assert collection_display_status("interrupted", {}, {}) == "interrupted"

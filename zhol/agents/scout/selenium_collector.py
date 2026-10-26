@@ -42,6 +42,7 @@ from zhol.agents.scout.fields import field_keys
 from zhol.agents.scout.live_2gis import _mark, _progress, _save, _status
 from zhol.agents.scout.normalize import normalize_platform_id, phone_parts
 from zhol.agents.scout.persist import find_reusable, insert_snapshot, remember_collection_context, remember_platform_id, remember_search_query
+from zhol.agents.scout.run_timing import PersistTimer, RunClock, begin_timings, merge_timings
 from zhol.browser.discovery.normalize import clean_address, verified_instagram, verified_whatsapp
 from zhol.browser.pace import wait_turn
 from zhol.browser.discovery.types import RunControl
@@ -289,6 +290,7 @@ def collect_with_driver(
     persist: Callable[[dict[str, Any], Any], bool | str] | None = None,
     on_error: Callable[[dict[str, str]], None] | None = None,
     reserved_ids: set[str] | None = None,
+    clock: RunClock | None = None,
 ) -> dict[str, Any]:
     """Read one query through search.run_search. The driver is not closed here.
 
@@ -307,24 +309,35 @@ def collect_with_driver(
         return persist(record, driver)
 
     card_delay, pace = _delays(delay_range)
-    result = search.run_search(
-        driver,
-        city_name,
-        slug,
-        query,
-        limit,
-        pause,
-        stop,
-        on_record=on_record,
-        delay_range=card_delay,
-        known_ids=known_ids,
-        quiet=True,
-        run_dir=run_dir,
-        pace=pace,
-        refresh_ids=refresh_ids,
-        on_error=on_error,
-        reserved_ids=reserved_ids,
-    )
+    on_progress = None
+    if clock is not None:
+        pace = clock.paced(pace)
+        pause = clock.paused(pause) or pause
+        on_progress = clock.progress
+        clock.search_began()
+    try:
+        result = search.run_search(
+            driver,
+            city_name,
+            slug,
+            query,
+            limit,
+            pause,
+            stop,
+            on_progress=on_progress,
+            on_record=on_record,
+            delay_range=card_delay,
+            known_ids=known_ids,
+            quiet=True,
+            run_dir=run_dir,
+            pace=pace,
+            refresh_ids=refresh_ids,
+            on_error=on_error,
+            reserved_ids=reserved_ids,
+        )
+    finally:
+        if clock is not None:
+            clock.search_ended()
     firms: list[BrowserFirm] = []
     if persist is not None:
         records.clear()
@@ -515,8 +528,10 @@ def run_browser_batch(
     stop = _Flag(control)
     driver = None
     site: _LocalHtmlSite | None = None
+    clock = RunClock()
 
     def accept(record: dict[str, Any], page: Any) -> bool | str:
+        clock.card_opened()
         if ensure_owner is not None:
             ensure_owner()
         firm = normalize_firm(record, city=city_name, query=category, slug=slug)
@@ -534,10 +549,11 @@ def run_browser_batch(
         shot = _capture(page, artifact, firm.firm_id)
         if shot:
             firm = _with_screenshot(firm, shot)
-        kind = _commit_firm(factory, batch_id, firm)
+        kind = _commit_firm(factory, batch_id, firm, clock.persist)
         return False if kind == "duplicate" else True
 
     def reject(item: dict[str, str]) -> None:
+        clock.card_opened()
         firm_id = str(item.get("branch_id") or "")
         if not firm_id:
             return
@@ -555,7 +571,9 @@ def run_browser_batch(
         if job_attempt is not None:
             _note_job_retry(factory, batch_id, max(0, int(job_attempt) - 1))
         site = _maybe_local_site()
+        browser_started = time.perf_counter()
         driver = driver_factory() if driver_factory is not None else _open_chrome()
+        clock.browser_started(browser_started)
         if ensure_owner is not None:
             ensure_owner()
         _mark(factory, batch_id, "running", finish=False)
@@ -564,6 +582,7 @@ def run_browser_batch(
         state["active_query"] = category
         state["browser_source"] = active_source()
         state["browser_origin"] = local_base_url() or LIVE_ORIGIN
+        begin_timings(state)
         _save(factory, batch_id, state)
         outcome = collect_with_driver(
             driver,
@@ -589,6 +608,7 @@ def run_browser_batch(
             persist=accept,
             on_error=reject,
             reserved_ids=retryable,
+            clock=clock,
         )
         for firm_id in outcome["skipped_known_ids"]:
             if firm_id not in existing_ids or firm_id not in seen:
@@ -668,8 +688,31 @@ def run_browser_batch(
         _close_driver(driver)
         if driver is not None:
             _force_browser_closed(factory, batch_id)
+            store_run_timings(factory, batch_id, clock)
         if site is not None:
             site.close()
+
+
+def store_run_timings(factory: sessionmaker[Session], batch_id: int, clock: RunClock) -> None:
+    """One write per run. A failure here does not hide the run's own result."""
+    try:
+        with factory() as session, session.begin():
+            batch = _lock_batch(session, batch_id)
+            if batch is None:
+                return
+            progress = dict(batch.progress or {})
+            timings = progress.get("timings")
+            if not isinstance(timings, dict) or timings.get("persistence_scope") is None:
+                return
+            metrics = _metrics_of(progress)
+            clock.persist.apply(metrics)
+            _finish_metrics(metrics)
+            progress["metrics"] = metrics
+            progress["timings"] = merge_timings(timings, clock.summary())
+            _assign_progress(batch, progress)
+        clock.persist.drained()
+    except Exception:
+        clock.persist.rolled_back()
 
 
 def _source_cap_open(factory: sessionmaker[Session], batch_id: int) -> bool:
@@ -1343,24 +1386,35 @@ def _note_browser_restart(factory: sessionmaker[Session], batch_id: int) -> None
         _assign_progress(batch, progress)
 
 
-def _commit_firm(factory: sessionmaker[Session], batch_id: int, firm: BrowserFirm) -> str:
+def _commit_firm(
+    factory: sessionmaker[Session],
+    batch_id: int,
+    firm: BrowserFirm,
+    timer: PersistTimer | None = None,
+) -> str:
     """Commit one company, its snapshot, and the checkpoint together."""
-    started = time.perf_counter()
-    for attempt in range(2):
-        try:
-            with factory() as session, session.begin():
-                return _commit_firm_locked(session, batch_id, firm, started)
-        except IntegrityError:
-            if attempt == 1:
-                raise
-    raise RuntimeError("company commit did not finish")
+
+    def commit() -> str:
+        for attempt in range(2):
+            try:
+                with factory() as session, session.begin():
+                    kind = _commit_firm_locked(session, batch_id, firm, timer)
+                return kind
+            except IntegrityError:
+                if timer is not None:
+                    timer.rolled_back()
+                if attempt == 1:
+                    raise
+        raise RuntimeError("company commit did not finish")
+
+    return commit() if timer is None else timer.timed(commit)
 
 
 def _commit_firm_locked(
     session: Session,
     batch_id: int,
     firm: BrowserFirm,
-    started: float,
+    timer: PersistTimer | None = None,
 ) -> str:
     batch = _lock_batch(session, batch_id)
     if batch is None:
@@ -1374,9 +1428,8 @@ def _commit_firm_locked(
         )
     )
     metrics = _metrics_of(progress)
-    elapsed = (time.perf_counter() - started) * 1000
-    metrics["persistence_ms_total"] = float(metrics["persistence_ms_total"]) + elapsed
-    metrics["persistence_samples"] = int(metrics["persistence_samples"]) + 1
+    if timer is not None:
+        timer.apply(metrics)
     if item is not None and item.status == "completed":
         seen.add(firm.firm_id)
         progress["seen_ids"] = sorted(seen)

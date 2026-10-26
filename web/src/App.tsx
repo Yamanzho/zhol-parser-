@@ -110,7 +110,7 @@ export function App(): ReactNode {
 }
 
 function screen(page: string, id: string): ReactNode {
-  if (page === "collect") return <Collection />;
+  if (page === "collect") return <Collection jobId={id} />;
   if (page === "companies" && id) return <CompanyDetail id={id} />;
   if (page === "companies") return <CompanyList />;
   if (page === "export") return <ExportPanel />;

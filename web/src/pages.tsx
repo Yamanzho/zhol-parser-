@@ -33,7 +33,7 @@ export function Dashboard(): ReactNode {
         <>
           <p>
             Состояние API: {health.loading ? "Загрузка." : health.error || cell(health.data?.status)}. Реальная публикация: нет.
-            Бек подключен: нет. Живой сбор города: нет.
+            Бек подключен: нет. Сбор компаний идёт по поисковым запросам, обход всего города не выполняется.
           </p>
           <div className="cards">
             {Object.entries(counts).map(([key, value]) => (
@@ -108,13 +108,11 @@ export function ScoutDetail(props: { id: string }): ReactNode {
   return (
     <section>
       <h1>Сбор {props.id}</h1>
-      <Banner />
       <p className="hint">Пауза и остановка не удаляют уже собранные компании. Excel можно скачать после подготовки.</p>
       <p><a href="#/scout">К списку сборов</a></p>
       <StateView loading={data.loading} error={data.error} />
       {data.data && (
         <>
-          <p>Живой сбор города: нет. Уже собранные компании при остановке не удаляются.</p>
           <BatchSummary batch={data.data} />
           <VerificationControls
             batch={data.data}

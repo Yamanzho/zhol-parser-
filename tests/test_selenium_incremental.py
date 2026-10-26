@@ -23,6 +23,7 @@ from selenium.webdriver.chrome.service import Service
 from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
+from zhol.agents.scout.collection_outcome import collection_outcome
 from zhol.agents.scout.selenium_collector import run_browser_batch
 from zhol.browser.discovery.types import RunControl
 from zhol.db.models import CardSnapshot, CollectionBatch, CollectionBatchItem, Company
@@ -189,6 +190,21 @@ def test_ten_companies_are_committed_one_by_one(factory, lab, tmp_path: Path) ->
     assert metrics["failed_records"] == 0
     assert metrics["average_persistence_ms"] >= 0
     assert metrics["browser_restarts"] == 0
+    timings = progress["timings"]
+    assert timings["persistence_scope"] == "commit"
+    assert timings["runs"] == 1
+    assert timings["cards_persisted"] == 10
+    assert timings["cards_opened"] == 10
+    assert metrics["persistence_samples"] == 10
+    assert metrics["persistence_ms_total"] == pytest.approx(timings["persistence_ms"], abs=0.01)
+    assert timings["persistence_ms"] > 0
+    for key in ("run_ms", "browser_start_ms", "link_discovery_ms", "card_read_ms", "card_pacing_ms"):
+        assert timings[key] >= 0
+    phases = timings["link_discovery_ms"] + timings["card_read_ms"] + timings["card_pacing_ms"] + timings["persistence_ms"]
+    assert phases <= timings["run_ms"] + 1
+    outcome = collection_outcome(status, progress, collected=10, limit=10)
+    assert outcome["code"] == "limit_reached"
+    assert outcome["search_exhausted"] is False
     _assert_local(lab)
 
 
