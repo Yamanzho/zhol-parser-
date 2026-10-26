@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import time
+import signal
+import threading
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -11,6 +11,8 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
+
+from tests import pg_resources
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -60,46 +62,24 @@ def alembic_config(url: str) -> Config:
     return cfg
 
 
-def _docker(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["docker", *args], check=True, capture_output=True, text=True)
+def _sigterm_as_interrupt(_signum, _frame) -> None:
+    raise KeyboardInterrupt
+
+
+def pytest_configure(config) -> None:
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGTERM, _sigterm_as_interrupt)
 
 
 @pytest.fixture(scope="session")
 def postgres_url() -> Iterator[str]:
-    name = f"zhol-s03-test-{os.getpid()}"
-    _docker(
-        "run",
-        "-d",
-        "--name",
-        name,
-        "-e",
-        "POSTGRES_USER=zhol",
-        "-e",
-        "POSTGRES_PASSWORD=zhol",
-        "-e",
-        "POSTGRES_DB=zhol_test",
-        "-p",
-        "127.0.0.1:0:5432",
-        "postgres:16",
-    )
+    pg_resources.reap_stale()
+    name = pg_resources.container_name()
+    url = pg_resources.start(name)
     try:
-        port = None
-        for _ in range(40):
-            ready = subprocess.run(
-                ["docker", "exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "zhol", "-d", "zhol_test"],
-                capture_output=True,
-                text=True,
-            )
-            if ready.returncode == 0:
-                published = _docker("port", name, "5432").stdout.strip()
-                port = published.rsplit(":", 1)[1]
-                break
-            time.sleep(0.25)
-        if port is None:
-            raise RuntimeError("test PostgreSQL did not become ready")
-        yield f"postgresql+psycopg://zhol:zhol@127.0.0.1:{port}/zhol_test"
+        yield url
     finally:
-        subprocess.run(["docker", "rm", "-f", name], check=False, capture_output=True)
+        pg_resources.remove(name)
 
 
 @pytest.fixture
