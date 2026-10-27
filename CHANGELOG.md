@@ -13,6 +13,7 @@
 - `Обновить базу Zhol.command` and `scripts/zhol-upgrade-db.sh` upgrade explicitly: stop all writers including the macOS collector, wait for zero connections, write a private checked dump to `data/backups/pre-upgrade/`, migrate, check again.
 - The macOS collector does not start on a mismatched schema.
 - The backup loop follows the wall clock, so a dump missed during Mac sleep is written after wake. Dumps are mode 600, written through a checked partial file, never overwritten, and have a `.sha256`.
+- `scripts/zhol-deploy-macos.sh` is the single deployment entry (`check`, `deploy`, `rollback`). It always passes both Compose files, validates the effective configuration, `.env`, PostgreSQL, the Alembic revision, active collection jobs and free disk space, builds while the services keep running, probes the new images (`zhol.deploy_probe`), saves the running images for rollback, replaces only changed services, verifies the API and the panel, and rolls back on a failed check. It never migrates, never touches the database container or backups, never removes images, never pushes. See `docs/ops/deploy-macos.md`.
 - Migration `b6d2f4a81c30` adds the key table and the indexes used by lookup, the newest snapshot, and the job queue. Downgrade drops those objects only.
 
 ## 0.1.0
