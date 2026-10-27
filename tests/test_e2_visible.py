@@ -93,13 +93,13 @@ def test_hours_ignore_invisible_characters_and_ads_do_not_supply_a_phone() -> No
 
 
 def test_unknown_and_ambiguous_rubrics_stay_empty() -> None:
-    unknown, notes = _parse("Badi\nБар\n4.8\n", name="Badi")
+    unknown, notes = _parse("Badi\nПланетарий\n4.8\n", name="Badi")
     ambiguous, other = _parse("Badi\nсалон\n4.8\n", name="Badi")
     split, split_notes = _parse("Badi\nСалон красоты, Ресторан\n4.8\n", name="Badi")
-    assert unknown["category"] == "Бар" and notes["category"] == "shown"
+    assert unknown["category"] == "Планетарий" and notes["category"] == "shown"
     assert "category" not in ambiguous and other["category"] == "ambiguous"
     assert "category" not in split and split_notes["category"] == "ambiguous"
-    assert classify(["Бар"], load_categories()) == (None, None, None)
+    assert classify(["Планетарий"], load_categories()) == (None, None, None)
 
 
 def test_missing_fields_stay_null_and_a_shown_zero_stays_zero() -> None:

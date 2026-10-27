@@ -56,19 +56,28 @@ def _save_view(page: Any, folder: Path) -> tuple[Path, str]:
     return screenshot, text
 
 
-def _record(folder: Path, *, access: str, http_status: int | None, url: str, screenshot: Path, extracted: bool) -> None:
-    write_access(
-        folder,
-        {
-            "access": access,
-            "outcome": outcome_for(access) if access in (CARD_VISIBLE, ROBOT_CHECK, ACCESS_DENIED, NAVIGATION_ERROR) else "stopped",
-            "http_status": http_status,
-            "url": url,
-            "seen_at": now().isoformat(),
-            "screenshot": str(screenshot),
-            "extracted": extracted,
-        },
-    )
+def _record(
+    folder: Path,
+    *,
+    access: str,
+    http_status: int | None,
+    url: str,
+    screenshot: Path,
+    extracted: bool,
+    error: str | None = None,
+) -> None:
+    payload = {
+        "access": access,
+        "outcome": outcome_for(access) if access in (CARD_VISIBLE, ROBOT_CHECK, ACCESS_DENIED, NAVIGATION_ERROR) else "stopped",
+        "http_status": http_status,
+        "url": url,
+        "seen_at": now().isoformat(),
+        "screenshot": str(screenshot),
+        "extracted": extracted,
+    }
+    if error:
+        payload["error"] = error
+    write_access(folder, payload)
 
 
 def _stop(page: Any, folder: Path, access: str, http_status: int | None) -> None:
@@ -124,16 +133,19 @@ def _loaded_card(page: Any, folder: Path, spec: dict[str, Any], platform: str, s
     timeout = int(spec.get("timeout_ms") or 15000)
     screenshot = folder / "screenshot.png"
     try:
+        if platform == "google":
+            page.locator("[role='main']").first.wait_for(state="visible", timeout=timeout)
         page.get_by_role("heading").first.wait_for(state="visible", timeout=timeout)
         name = page.get_by_role("heading").first.inner_text().strip()
     except Exception as exc:
-        _record(folder, access=NAVIGATION_ERROR, http_status=status, url=page.url, screenshot=screenshot, extracted=False)
+        error = f"{type(exc).__name__}: {exc}".splitlines()[0][:500]
+        _record(folder, access=NAVIGATION_ERROR, http_status=status, url=page.url, screenshot=screenshot, extracted=False, error=error)
         try:
             page.screenshot(path=str(screenshot), full_page=True)
         except Exception:
             pass
         raise UnexpectedPage(
-            f"{platform} heading was not shown",
+            f"{platform} heading was not shown: {error}",
             screenshot=str(screenshot),
             url=page.url,
             access=NAVIGATION_ERROR,
@@ -256,6 +268,7 @@ class MapsBrowser:
         self._manager: Any = None
         self._browser: Any = None
         self._page: Any = None
+        self._status: int | None = None
 
     def __enter__(self) -> "MapsBrowser":
         manager = _playwright()()
@@ -282,6 +295,7 @@ class MapsBrowser:
     def search(self, platform: str, _id_2gis: str, url: str, folder: Path) -> LoadedPage:
         spec = self._spec(platform)
         status = _goto(self._page, url, folder, spec)
+        self._status = status
         loaded = _loaded_search(self._page, folder, spec, platform, status)
         if loaded.document and loaded.document.candidates:
             return loaded
@@ -297,7 +311,12 @@ class MapsBrowser:
 
     def card(self, platform: str, _external_id: str, url: str, folder: Path) -> LoadedPage:
         spec = self._spec(platform)
-        status = _goto(self._page, url, folder, spec)
+        # Reloading the place page the search already opened can catch Google Maps before its panel renders.
+        if platform == "google" and self._page.url == url:
+            folder.mkdir(parents=True, exist_ok=True)
+            status = self._status
+        else:
+            status = _goto(self._page, url, folder, spec)
         return _loaded_card(self._page, folder, spec, platform, status)
 
 

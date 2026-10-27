@@ -4,6 +4,7 @@ import re
 
 # Fillers from prompts/scout-match.md, plus the Latin forms of the Cyrillic words.
 _FILLERS = frozenset({"салон", "студия", "beauty", "studio", "salon", "studiya"})
+_POSTCODE = re.compile(r"\d{6}")
 _CYRILLIC = {
     "а": "a",
     "б": "b",
@@ -135,6 +136,9 @@ def address_parts(value: str | None) -> tuple[str, str] | None:
     if not value or not value.strip():
         return None
     tokens = normalize_address(_without_floor(value)).split()
+    # Google appends the 6-digit Kazakhstan postcode after the city: "улица Гоголя 84а, Алматы 050000".
+    if len(tokens) > 1 and _POSTCODE.fullmatch(tokens[-1]) and any(char.isdigit() for token in tokens[:-1] for char in token):
+        tokens = tokens[:-1]
     house_at = None
     for index, token in enumerate(tokens):
         if any(char.isdigit() for char in token):

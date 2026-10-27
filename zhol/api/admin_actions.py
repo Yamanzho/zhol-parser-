@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
@@ -712,6 +713,11 @@ def get_mailing_export() -> FileResponse:
     )
 
 
+def _batch_export_path(batch: CollectionBatch) -> Path:
+    # The macOS collector stores its host path; only the file name is kept, inside this process's exports folder.
+    return export_destination(str(admin_root() / "exports" / Path(batch.out_path or "").name))
+
+
 @write_router.post("/scout/batches/{batch_id}/export", dependencies=[Depends(require_action_header)])
 def post_batch_export(batch_id: int, session: Session = Depends(get_write_session)) -> dict[str, Any]:
     from zhol.export.mailing import load_batch_rows, write_xlsx
@@ -720,7 +726,7 @@ def post_batch_export(batch_id: int, session: Session = Depends(get_write_sessio
     if batch is None:
         raise HTTPException(status_code=404, detail="batch not found")
     try:
-        path = export_destination(batch.out_path)
+        path = _batch_export_path(batch)
     except AdminPathError as exc:
         raise HTTPException(status_code=404, detail="export file was not found") from exc
     count = write_xlsx(load_batch_rows(session, batch_id), path)
@@ -734,11 +740,16 @@ def post_batch_export(batch_id: int, session: Session = Depends(get_write_sessio
 
 @router.get("/scout/batches/{batch_id}/export.xlsx")
 def get_batch_export(batch_id: int, session: Session = Depends(get_admin_session)) -> FileResponse:
+    from zhol.export.mailing import load_batch_rows, write_xlsx
+
     batch = session.get(CollectionBatch, batch_id)
     if batch is None:
         raise HTTPException(status_code=404, detail="batch not found")
     try:
-        target = open_export(batch.out_path)
+        path = _batch_export_path(batch)
+        if not path.is_file():
+            write_xlsx(load_batch_rows(session, batch_id), path)
+        target = open_export(str(path))
     except AdminPathError as exc:
         raise HTTPException(status_code=404, detail="export file was not found") from exc
     return FileResponse(

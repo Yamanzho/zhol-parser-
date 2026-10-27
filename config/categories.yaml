@@ -32,3 +32,563 @@ entries:
     sector: Медицина
     category: Медицинский центр
     subcategory: ""
+  - labels: ["Ногтевая студия"]
+    sector: Красота
+    category: Ногтевая студия
+    subcategory: ""
+  - labels: ["Барбершоп"]
+    sector: Красота
+    category: Барбершоп
+    subcategory: ""
+  - labels: ["Косметология"]
+    sector: Красота
+    category: Косметология
+    subcategory: ""
+  - labels: ["Спа-салон"]
+    sector: Красота
+    category: Спа-салон
+    subcategory: ""
+  - labels: ["Массажный салон"]
+    sector: Красота
+    category: Массажный салон
+    subcategory: ""
+  - labels: ["Студия загара"]
+    sector: Красота
+    category: Студия загара
+    subcategory: ""
+  - labels: ["Тату-салон"]
+    sector: Красота
+    category: Тату-салон
+    subcategory: ""
+  - labels: ["Студия депиляции"]
+    sector: Красота
+    category: Студия депиляции
+    subcategory: ""
+  - labels: ["Наращивание ресниц"]
+    sector: Красота
+    category: Наращивание ресниц
+    subcategory: ""
+  - labels: ["Йога-студия"]
+    sector: Спорт
+    category: Йога-студия
+    subcategory: ""
+  - labels: ["Бассейн"]
+    sector: Спорт
+    category: Бассейн
+    subcategory: ""
+  - labels: ["Школа танцев"]
+    sector: Спорт
+    category: Школа танцев
+    subcategory: ""
+  - labels: ["Спортивный клуб"]
+    sector: Спорт
+    category: Спортивный клуб
+    subcategory: ""
+  - labels: ["Школа единоборств"]
+    sector: Спорт
+    category: Школа единоборств
+    subcategory: ""
+  - labels: ["Скалодром"]
+    sector: Спорт
+    category: Скалодром
+    subcategory: ""
+  - labels: ["Теннисный клуб"]
+    sector: Спорт
+    category: Теннисный клуб
+    subcategory: ""
+  - labels: ["Кафе"]
+    sector: Питание
+    category: Кафе
+    subcategory: ""
+  - labels: ["Кофейня"]
+    sector: Питание
+    category: Кофейня
+    subcategory: ""
+  - labels: ["Бар"]
+    sector: Питание
+    category: Бар
+    subcategory: ""
+  - labels: ["Пиццерия"]
+    sector: Питание
+    category: Пиццерия
+    subcategory: ""
+  - labels: ["Суши-бар"]
+    sector: Питание
+    category: Суши-бар
+    subcategory: ""
+  - labels: ["Фастфуд"]
+    sector: Питание
+    category: Фастфуд
+    subcategory: ""
+  - labels: ["Столовая"]
+    sector: Питание
+    category: Столовая
+    subcategory: ""
+  - labels: ["Пекарня"]
+    sector: Питание
+    category: Пекарня
+    subcategory: ""
+  - labels: ["Кондитерская"]
+    sector: Питание
+    category: Кондитерская
+    subcategory: ""
+  - labels: ["Доставка еды"]
+    sector: Питание
+    category: Доставка еды
+    subcategory: ""
+  - labels: ["Кальянная"]
+    sector: Питание
+    category: Кальянная
+    subcategory: ""
+  - labels: ["Чайхана"]
+    sector: Питание
+    category: Чайхана
+    subcategory: ""
+  - labels: ["Аптека"]
+    sector: Медицина
+    category: Аптека
+    subcategory: ""
+  - labels: ["Медицинская лаборатория"]
+    sector: Медицина
+    category: Медицинская лаборатория
+    subcategory: ""
+  - labels: ["Офтальмологическая клиника"]
+    sector: Медицина
+    category: Офтальмологическая клиника
+    subcategory: ""
+  - labels: ["Ветеринарная клиника"]
+    sector: Медицина
+    category: Ветеринарная клиника
+    subcategory: ""
+  - labels: ["Гинекология"]
+    sector: Медицина
+    category: Гинекология
+    subcategory: ""
+  - labels: ["Психологическая помощь"]
+    sector: Медицина
+    category: Психологическая помощь
+    subcategory: ""
+  - labels: ["Диагностический центр"]
+    sector: Медицина
+    category: Диагностический центр
+    subcategory: ""
+  - labels: ["Травматологический пункт"]
+    sector: Медицина
+    category: Травматологический пункт
+    subcategory: ""
+  - labels: ["Ортодонтия"]
+    sector: Медицина
+    category: Ортодонтия
+    subcategory: ""
+  - labels: ["Продуктовый магазин"]
+    sector: Торговля
+    category: Продуктовый магазин
+    subcategory: ""
+  - labels: ["Супермаркет"]
+    sector: Торговля
+    category: Супермаркет
+    subcategory: ""
+  - labels: ["Магазин одежды"]
+    sector: Торговля
+    category: Магазин одежды
+    subcategory: ""
+  - labels: ["Магазин обуви"]
+    sector: Торговля
+    category: Магазин обуви
+    subcategory: ""
+  - labels: ["Магазин электроники"]
+    sector: Торговля
+    category: Магазин электроники
+    subcategory: ""
+  - labels: ["Магазин бытовой техники"]
+    sector: Торговля
+    category: Магазин бытовой техники
+    subcategory: ""
+  - labels: ["Мебельный магазин"]
+    sector: Торговля
+    category: Мебельный магазин
+    subcategory: ""
+  - labels: ["Цветочный магазин"]
+    sector: Торговля
+    category: Цветочный магазин
+    subcategory: ""
+  - labels: ["Ювелирный магазин"]
+    sector: Торговля
+    category: Ювелирный магазин
+    subcategory: ""
+  - labels: ["Магазин косметики"]
+    sector: Торговля
+    category: Магазин косметики
+    subcategory: ""
+  - labels: ["Детский магазин"]
+    sector: Торговля
+    category: Детский магазин
+    subcategory: ""
+  - labels: ["Зоомагазин"]
+    sector: Торговля
+    category: Зоомагазин
+    subcategory: ""
+  - labels: ["Книжный магазин"]
+    sector: Торговля
+    category: Книжный магазин
+    subcategory: ""
+  - labels: ["Магазин спорттоваров"]
+    sector: Торговля
+    category: Магазин спорттоваров
+    subcategory: ""
+  - labels: ["Хозяйственный магазин"]
+    sector: Торговля
+    category: Хозяйственный магазин
+    subcategory: ""
+  - labels: ["Магазин мобильных телефонов"]
+    sector: Торговля
+    category: Магазин мобильных телефонов
+    subcategory: ""
+  - labels: ["Оптика"]
+    sector: Торговля
+    category: Оптика
+    subcategory: ""
+  - labels: ["Торговый центр"]
+    sector: Торговля
+    category: Торговый центр
+    subcategory: ""
+  - labels: ["Детский сад"]
+    sector: Образование
+    category: Детский сад
+    subcategory: ""
+  - labels: ["Частная школа"]
+    sector: Образование
+    category: Частная школа
+    subcategory: ""
+  - labels: ["Языковая школа"]
+    sector: Образование
+    category: Языковая школа
+    subcategory: ""
+  - labels: ["Учебный центр"]
+    sector: Образование
+    category: Учебный центр
+    subcategory: ""
+  - labels: ["Курсы программирования"]
+    sector: Образование
+    category: Курсы программирования
+    subcategory: ""
+  - labels: ["Автошкола"]
+    sector: Образование
+    category: Автошкола
+    subcategory: ""
+  - labels: ["Музыкальная школа"]
+    sector: Образование
+    category: Музыкальная школа
+    subcategory: ""
+  - labels: ["Репетиторство"]
+    sector: Образование
+    category: Репетиторство
+    subcategory: ""
+  - labels: ["Детский развивающий центр"]
+    sector: Образование
+    category: Детский развивающий центр
+    subcategory: ""
+  - labels: ["Автосервис"]
+    sector: Авто
+    category: Автосервис
+    subcategory: ""
+  - labels: ["Шиномонтаж"]
+    sector: Авто
+    category: Шиномонтаж
+    subcategory: ""
+  - labels: ["Автомойка"]
+    sector: Авто
+    category: Автомойка
+    subcategory: ""
+  - labels: ["Автозапчасти"]
+    sector: Авто
+    category: Автозапчасти
+    subcategory: ""
+  - labels: ["Автосалон"]
+    sector: Авто
+    category: Автосалон
+    subcategory: ""
+  - labels: ["Детейлинг"]
+    sector: Авто
+    category: Детейлинг
+    subcategory: ""
+  - labels: ["Кузовной ремонт"]
+    sector: Авто
+    category: Кузовной ремонт
+    subcategory: ""
+  - labels: ["Автоэлектрик"]
+    sector: Авто
+    category: Автоэлектрик
+    subcategory: ""
+  - labels: ["Эвакуатор"]
+    sector: Авто
+    category: Эвакуатор
+    subcategory: ""
+  - labels: ["Прокат автомобилей"]
+    sector: Авто
+    category: Прокат автомобилей
+    subcategory: ""
+  - labels: ["АЗС"]
+    sector: Авто
+    category: АЗС
+    subcategory: ""
+  - labels: ["Техосмотр"]
+    sector: Авто
+    category: Техосмотр
+    subcategory: ""
+  - labels: ["Строительная компания"]
+    sector: Строительство
+    category: Строительная компания
+    subcategory: ""
+  - labels: ["Строительный магазин"]
+    sector: Строительство
+    category: Строительный магазин
+    subcategory: ""
+  - labels: ["Ремонт квартир"]
+    sector: Строительство
+    category: Ремонт квартир
+    subcategory: ""
+  - labels: ["Дизайн интерьера"]
+    sector: Строительство
+    category: Дизайн интерьера
+    subcategory: ""
+  - labels: ["Окна"]
+    sector: Строительство
+    category: Окна
+    subcategory: ""
+  - labels: ["Двери"]
+    sector: Строительство
+    category: Двери
+    subcategory: ""
+  - labels: ["Кровельные работы"]
+    sector: Строительство
+    category: Кровельные работы
+    subcategory: ""
+  - labels: ["Электромонтажные работы"]
+    sector: Строительство
+    category: Электромонтажные работы
+    subcategory: ""
+  - labels: ["Сантехнические работы"]
+    sector: Строительство
+    category: Сантехнические работы
+    subcategory: ""
+  - labels: ["Натяжные потолки"]
+    sector: Строительство
+    category: Натяжные потолки
+    subcategory: ""
+  - labels: ["Агентство недвижимости"]
+    sector: Недвижимость
+    category: Агентство недвижимости
+    subcategory: ""
+  - labels: ["Жилой комплекс"]
+    sector: Недвижимость
+    category: Жилой комплекс
+    subcategory: ""
+  - labels: ["Застройщик"]
+    sector: Недвижимость
+    category: Застройщик
+    subcategory: ""
+  - labels: ["Аренда офисов"]
+    sector: Недвижимость
+    category: Аренда офисов
+    subcategory: ""
+  - labels: ["Управляющая компания"]
+    sector: Недвижимость
+    category: Управляющая компания
+    subcategory: ""
+  - labels: ["Оценка недвижимости"]
+    sector: Недвижимость
+    category: Оценка недвижимости
+    subcategory: ""
+  - labels: ["Гостиница"]
+    sector: Гостиницы
+    category: Гостиница
+    subcategory: ""
+  - labels: ["Хостел"]
+    sector: Гостиницы
+    category: Хостел
+    subcategory: ""
+  - labels: ["Апартаменты"]
+    sector: Гостиницы
+    category: Апартаменты
+    subcategory: ""
+  - labels: ["База отдыха"]
+    sector: Гостиницы
+    category: База отдыха
+    subcategory: ""
+  - labels: ["Санаторий"]
+    sector: Гостиницы
+    category: Санаторий
+    subcategory: ""
+  - labels: ["Кинотеатр"]
+    sector: Развлечения
+    category: Кинотеатр
+    subcategory: ""
+  - labels: ["Боулинг"]
+    sector: Развлечения
+    category: Боулинг
+    subcategory: ""
+  - labels: ["Караоке"]
+    sector: Развлечения
+    category: Караоке
+    subcategory: ""
+  - labels: ["Квесты"]
+    sector: Развлечения
+    category: Квесты
+    subcategory: ""
+  - labels: ["Развлекательный центр"]
+    sector: Развлечения
+    category: Развлекательный центр
+    subcategory: ""
+  - labels: ["Ночной клуб"]
+    sector: Развлечения
+    category: Ночной клуб
+    subcategory: ""
+  - labels: ["Бильярдный клуб"]
+    sector: Развлечения
+    category: Бильярдный клуб
+    subcategory: ""
+  - labels: ["Компьютерный клуб"]
+    sector: Развлечения
+    category: Компьютерный клуб
+    subcategory: ""
+  - labels: ["Детский игровой центр"]
+    sector: Развлечения
+    category: Детский игровой центр
+    subcategory: ""
+  - labels: ["Банкетный зал"]
+    sector: Развлечения
+    category: Банкетный зал
+    subcategory: ""
+  - labels: ["Организация праздников"]
+    sector: Развлечения
+    category: Организация праздников
+    subcategory: ""
+  - labels: ["Фотостудия"]
+    sector: Развлечения
+    category: Фотостудия
+    subcategory: ""
+  - labels: ["Грузоперевозки"]
+    sector: Транспорт
+    category: Грузоперевозки
+    subcategory: ""
+  - labels: ["Курьерская служба"]
+    sector: Транспорт
+    category: Курьерская служба
+    subcategory: ""
+  - labels: ["Такси"]
+    sector: Транспорт
+    category: Такси
+    subcategory: ""
+  - labels: ["Логистическая компания"]
+    sector: Транспорт
+    category: Логистическая компания
+    subcategory: ""
+  - labels: ["Транспортная компания"]
+    sector: Транспорт
+    category: Транспортная компания
+    subcategory: ""
+  - labels: ["Пассажирские перевозки"]
+    sector: Транспорт
+    category: Пассажирские перевозки
+    subcategory: ""
+  - labels: ["Склад"]
+    sector: Транспорт
+    category: Склад
+    subcategory: ""
+  - labels: ["Юридические услуги"]
+    sector: Профессиональные услуги
+    category: Юридические услуги
+    subcategory: ""
+  - labels: ["Нотариус"]
+    sector: Профессиональные услуги
+    category: Нотариус
+    subcategory: ""
+  - labels: ["Бухгалтерские услуги"]
+    sector: Профессиональные услуги
+    category: Бухгалтерские услуги
+    subcategory: ""
+  - labels: ["Страховая компания"]
+    sector: Профессиональные услуги
+    category: Страховая компания
+    subcategory: ""
+  - labels: ["Банк"]
+    sector: Профессиональные услуги
+    category: Банк
+    subcategory: ""
+  - labels: ["Микрофинансовая организация"]
+    sector: Профессиональные услуги
+    category: Микрофинансовая организация
+    subcategory: ""
+  - labels: ["Ломбард"]
+    sector: Профессиональные услуги
+    category: Ломбард
+    subcategory: ""
+  - labels: ["Рекламное агентство"]
+    sector: Профессиональные услуги
+    category: Рекламное агентство
+    subcategory: ""
+  - labels: ["Типография"]
+    sector: Профессиональные услуги
+    category: Типография
+    subcategory: ""
+  - labels: ["Веб-студия"]
+    sector: Профессиональные услуги
+    category: Веб-студия
+    subcategory: ""
+  - labels: ["IT-компания"]
+    sector: Профессиональные услуги
+    category: IT-компания
+    subcategory: ""
+  - labels: ["Кадровое агентство"]
+    sector: Профессиональные услуги
+    category: Кадровое агентство
+    subcategory: ""
+  - labels: ["Охранное агентство"]
+    sector: Профессиональные услуги
+    category: Охранное агентство
+    subcategory: ""
+  - labels: ["Туристическое агентство"]
+    sector: Профессиональные услуги
+    category: Туристическое агентство
+    subcategory: ""
+  - labels: ["Коворкинг"]
+    sector: Профессиональные услуги
+    category: Коворкинг
+    subcategory: ""
+  - labels: ["Химчистка"]
+    sector: Бытовые услуги
+    category: Химчистка
+    subcategory: ""
+  - labels: ["Прачечная"]
+    sector: Бытовые услуги
+    category: Прачечная
+    subcategory: ""
+  - labels: ["Ремонт обуви"]
+    sector: Бытовые услуги
+    category: Ремонт обуви
+    subcategory: ""
+  - labels: ["Ремонт одежды"]
+    sector: Бытовые услуги
+    category: Ремонт одежды
+    subcategory: ""
+  - labels: ["Ремонт телефонов"]
+    sector: Бытовые услуги
+    category: Ремонт телефонов
+    subcategory: ""
+  - labels: ["Ремонт бытовой техники"]
+    sector: Бытовые услуги
+    category: Ремонт бытовой техники
+    subcategory: ""
+  - labels: ["Ремонт компьютеров"]
+    sector: Бытовые услуги
+    category: Ремонт компьютеров
+    subcategory: ""
+  - labels: ["Клининговая компания"]
+    sector: Бытовые услуги
+    category: Клининговая компания
+    subcategory: ""
+  - labels: ["Ритуальные услуги"]
+    sector: Бытовые услуги
+    category: Ритуальные услуги
+    subcategory: ""

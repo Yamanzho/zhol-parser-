@@ -91,8 +91,31 @@ def test_single_and_multiple_categories() -> None:
 def test_all_configured_categories_are_the_catalog_not_the_word_all() -> None:
     rows = active_categories()
     groups = category_groups(rows)
-    assert len(rows) == 7
-    assert {item["sector"] for item in groups} == {"Красота", "Спорт", "Питание", "Медицина"}
+    assert 100 <= len(rows) <= 150
+    assert [row["label"] for row in rows[:7]] == [
+        "Салон красоты",
+        "Парикмахерская",
+        "Фитнес-клуб",
+        "Тренажёрный зал",
+        "Ресторан",
+        "Стоматология",
+        "Медицинский центр",
+    ]
+    assert {item["sector"] for item in groups} >= {
+        "Красота",
+        "Спорт",
+        "Питание",
+        "Медицина",
+        "Торговля",
+        "Образование",
+        "Авто",
+        "Строительство",
+        "Недвижимость",
+        "Гостиницы",
+        "Развлечения",
+        "Транспорт",
+        "Профессиональные услуги",
+    }
     built = _plan(categories=[], all_categories=True, confirm=True)
     phrases = [item["query"] for item in built["plans"][0]["combinations"]]
     assert "Все" not in phrases

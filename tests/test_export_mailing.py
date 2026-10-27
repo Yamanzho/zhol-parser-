@@ -67,7 +67,7 @@ def test_known_categories_normalize_and_unknown_stay_blank() -> None:
     gym = _row("Any name", "Фитнес-клуб")
     restaurant = _row("Any name", "Ресторан")
     medical = _row("Any name", "Стоматология")
-    unknown = _row("Стоматология Улыбка", "Бар")
+    unknown = _row("Стоматология Улыбка", "Планетарий")
     ambiguous = _row("Montebello", None, niche="салон", services=None)
     assert (salon["Business Sector"], salon["Business Category"], salon["Business Subcategory"]) == ("Красота", "Салон красоты", None)
     assert (gym["Business Sector"], gym["Business Category"]) == ("Спорт", "Фитнес-клуб")

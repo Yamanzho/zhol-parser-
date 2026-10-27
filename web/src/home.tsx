@@ -100,6 +100,8 @@ export function Collection(props: { jobId?: string }): ReactNode {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [listError, setListError] = useState("");
   const [reload, setReload] = useState(0);
+  const [allCategories, setAllCategories] = useState(false);
+  const [catalogCount, setCatalogCount] = useState<number | null>(null);
   const selected = platforms.find((item) => item.id === platform);
   const cities = selected?.cities || [];
   const openId = props.jobId && /^\d+$/.test(props.jobId) ? Number(props.jobId) : null;
@@ -135,10 +137,51 @@ export function Collection(props: { jobId?: string }): ReactNode {
     return () => window.clearTimeout(timer);
   }, [anyActive, jobs]);
 
+  useEffect(() => {
+    if (!allCategories || catalogCount !== null) return;
+    void api<Row>("/api/v1/admin/scout/setup")
+      .then((body) => {
+        const catalog = body.category_catalog as { ready?: boolean; count?: number } | undefined;
+        setCatalogCount(catalog?.ready !== false && typeof catalog?.count === "number" ? catalog.count : 0);
+      })
+      .catch((reason: Error) => setError(reason.message));
+  }, [allCategories, catalogCount]);
+
+  const perCategory = Number(limit);
+  const allTotal = catalogCount ? perCategory * catalogCount : 0;
+
   async function start(): Promise<void> {
     setError("");
+    if (allCategories) {
+      if (!catalogCount) {
+        setError("Каталог категорий пуст или ещё не загружен.");
+        return;
+      }
+      if (!Number.isInteger(perCategory) || perCategory < rule.min || allTotal > rule.max) {
+        setError(`На категорию можно от ${rule.min} до ${Math.floor(rule.max / catalogCount)} компаний: всего не больше ${rule.max}.`);
+        return;
+      }
+    }
     setBusy(true);
     try {
+      if (allCategories) {
+        await apiSend<Row>("/api/v1/admin/scout/collect", {
+          city,
+          cities: [city],
+          categories: [],
+          queries: [],
+          all_cities: false,
+          all_categories: true,
+          platforms: [platform],
+          limit: allTotal,
+          source_mode: platform === "google" ? "browser_google" : platform === "yandex" ? "browser_yandex" : "browser_2gis",
+          confirm: true,
+          skip_unsupported: false,
+          combination_limit: perCategory,
+        });
+        window.location.hash = "#/history";
+        return;
+      }
       const created = await apiSend<Job>("/api/v1/jobs", {
         platform,
         city,
@@ -189,17 +232,29 @@ export function Collection(props: { jobId?: string }): ReactNode {
         </label>
         <label>
           Категория или запрос
-          <input value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input value={query} disabled={allCategories} onChange={(event) => setQuery(event.target.value)} />
         </label>
         <label>
-          Максимум компаний
+          <span>
+            <input type="checkbox" checked={allCategories} onChange={(event) => setAllCategories(event.target.checked)} /> Все категории
+          </span>
+        </label>
+        <label>
+          {allCategories ? "Компаний на категорию" : "Максимум компаний"}
           <input min={rule.min} max={rule.max} type="number" value={limit} onChange={(event) => setLimit(event.target.value)} />
         </label>
       </div>
+      {allCategories && (
+        <p className="note">
+          {catalogCount === null
+            ? "Загружаем каталог категорий."
+            : `Категорий в каталоге: ${catalogCount}. Всего до ${allTotal} компаний. Ход сбора откроется в истории сбора.`}
+        </p>
+      )}
       {selected && !selected.available && <p className="error">{selected.note}</p>}
       {selected?.available && selected.note && <p className="note">{selected.note}</p>}
       <div className="actions">
-        <button type="button" disabled={busy || !selected?.available || !city || !query.trim()} onClick={() => void start()}>
+        <button type="button" disabled={busy || !selected?.available || !city || (!allCategories && !query.trim())} onClick={() => void start()}>
           Начать сбор
         </button>
       </div>
